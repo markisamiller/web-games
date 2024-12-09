@@ -117,7 +117,7 @@ function jump() {
         isJumping = true;
         canDoubleJump = true;
         let position = 20;
-        let jumpVelocity = 7;
+        let jumpVelocity = window.innerWidth <= 768 ? 5 : 7;
 
         const jumpInterval = setInterval(() => {
             if (position >= 180) {
@@ -127,7 +127,7 @@ function jump() {
                 position += jumpVelocity;
                 mAndM.style.bottom = position + 'px';
             }
-        }, 16);
+        }, window.innerWidth <= 768 ? 20 : 16);
     }
 }
 
@@ -141,7 +141,7 @@ function doubleJump() {
     }
     
     let position = parseInt(mAndM.style.bottom);
-    let jumpVelocity = 7;
+    let jumpVelocity = window.innerWidth <= 768 ? 5 : 7;
     let maxHeight = position + 120;
     
     const doubleJumpInterval = setInterval(() => {
@@ -152,12 +152,12 @@ function doubleJump() {
             position += jumpVelocity;
             mAndM.style.bottom = position + 'px';
         }
-    }, 16);
+    }, window.innerWidth <= 768 ? 20 : 16);
 }
 
 function fall() {
     let position = parseInt(mAndM.style.bottom);
-    let fallVelocity = 3.5;
+    let fallVelocity = window.innerWidth <= 768 ? 2.5 : 3.5;
     
     window.fallInterval = setInterval(() => {
         if (position <= 20) {
@@ -168,7 +168,7 @@ function fall() {
             position -= fallVelocity;
             mAndM.style.bottom = position + 'px';
         }
-    }, 16);
+    }, window.innerWidth <= 768 ? 20 : 16);
 }
 
 function moveBackgroundAndObstacles() {
