@@ -214,22 +214,22 @@ body {
         height: 100vh;
         width: 100vw;
         margin: 0;
-        padding: 0;
+        padding: 25px;
     }
 
     #game-container {
-        width: 100%;
+        width: 60%;
         height: calc(100vh - 120px); /* Account for score bars */
         transition: all 0.3s ease;
     }
 
     #score-bar, #yesterday-score-bar {
-        width: 100%;
+        width: 60%;
         transition: all 0.3s ease;
     }
 
     .menu-screen {
-        width: 90%;
+        width: 30%;
         max-width: 400px;
     }
 
@@ -245,7 +245,7 @@ body {
 }
 
 /* Landscape mode specific styles */
-@media (orientation: landscape) and (max-height: 600px) {
+@media (orientation: landscape) and (max-height: 400px) {
     #game-container {
         height: 100vh;
     }
@@ -302,7 +302,7 @@ body {
     }
 
     #score-bar {
-        width: 100%;
+        width: 60%;
         height: 40px;
         background-color: #333;
         color: white;
@@ -315,7 +315,7 @@ body {
     }
 
     #game-container {
-        width: 100%;
+        width: 60%;
         height: 100vw;  /* This creates 4:3 ratio with the 75vw width */
         background-color: #87CEEB;
         position: relative;
@@ -323,7 +323,7 @@ body {
     }
 
     #yesterday-score-bar {
-        width: 100%;
+        width: 60%;
         height: 40px;
         background-color: #333;
         color: white;
