@@ -20,6 +20,10 @@ let consecutiveJumps = 0;
 let yesterdayTopScore = 0;
 let currentScreen = 'main-menu';
 
+// Add touch handling variables
+let lastTouchTime = 0;
+const TOUCH_COOLDOWN = 300; // Minimum time between jumps in milliseconds
+
 document.addEventListener('keydown', (event) => {
     if (event.code === 'Space' && gameActive) {
         if (!isJumping) {
@@ -59,15 +63,24 @@ document.addEventListener('touchstart', handleTouch, { passive: false });
 document.addEventListener('touchend', handleTouch, { passive: false });
 
 function handleTouch(event) {
+    // Only handle touches on the game container
+    if (!event.target.closest('#game-container')) return;
+    
     event.preventDefault();
     
-    const target = event.target;
-    
-    if (target.classList.contains('menu-button')) {
-        target.click();
+    // For menu buttons
+    if (event.target.classList.contains('menu-button')) {
+        event.target.click();
+        return;
     }
     
+    // For game jumps
     if (gameActive && event.type === 'touchstart') {
+        const currentTime = Date.now();
+        // Prevent rapid-fire touches
+        if (currentTime - lastTouchTime < TOUCH_COOLDOWN) return;
+        lastTouchTime = currentTime;
+
         if (!isJumping) {
             jump();
         } else if (canDoubleJump && doubleJumpsRemaining > 0) {
@@ -106,6 +119,7 @@ function jump() {
         canDoubleJump = true;
         let position = 20;
         let jumpVelocity = 7;
+        let gravity = 0.3;
 
         const jumpInterval = setInterval(() => {
             if (position >= 180) {
@@ -113,6 +127,7 @@ function jump() {
                 fall();
             } else {
                 position += jumpVelocity;
+                jumpVelocity -= gravity;
                 mAndM.style.bottom = position + 'px';
             }
         }, 16);
@@ -130,6 +145,7 @@ function doubleJump() {
     
     let position = parseInt(mAndM.style.bottom);
     let jumpVelocity = 7;
+    let gravity = 0.3;
     let maxHeight = position + 120;
     
     const doubleJumpInterval = setInterval(() => {
@@ -138,6 +154,7 @@ function doubleJump() {
             fall();
         } else {
             position += jumpVelocity;
+            jumpVelocity -= gravity;
             mAndM.style.bottom = position + 'px';
         }
     }, 16);
@@ -145,7 +162,8 @@ function doubleJump() {
 
 function fall() {
     let position = parseInt(mAndM.style.bottom);
-    let fallVelocity = 3.5;
+    let fallVelocity = 0;
+    const gravity = 0.4;
     
     window.fallInterval = setInterval(() => {
         if (position <= 20) {
@@ -153,7 +171,9 @@ function fall() {
             mAndM.style.bottom = '20px';
             isJumping = false;
         } else {
+            fallVelocity += gravity;
             position -= fallVelocity;
+            if (position < 20) position = 20;
             mAndM.style.bottom = position + 'px';
         }
     }, 16);
