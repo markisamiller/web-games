@@ -117,32 +117,18 @@ function jump() {
     if (!isJumping) {
         isJumping = true;
         canDoubleJump = true;
-        
-        const isMobile = window.innerWidth <= 768;
-        const jumpHeight = isMobile ? BASE_JUMP_HEIGHT * 0.8 : BASE_JUMP_HEIGHT;
-        const jumpDuration = isMobile ? BASE_JUMP_DURATION * 1.2 : BASE_JUMP_DURATION;
-        
-        let startTime = null;
-        let startPosition = 20;
-        
-        function jumpStep(timestamp) {
-            if (!startTime) startTime = timestamp;
-            const progress = (timestamp - startTime) / jumpDuration;
-            
-            if (progress < 1) {
-                // Use sine curve for smooth jump motion
-                const currentHeight = startPosition + (jumpHeight * Math.sin(progress * Math.PI));
-                mAndM.style.bottom = `${currentHeight}px`;
-                window.jumpAnimation = requestAnimationFrame(jumpStep);
-            } else {
-                if (window.jumpAnimation) {
-                    cancelAnimationFrame(window.jumpAnimation);
-                }
+        let position = 20;
+        let jumpVelocity = window.innerWidth <= 768 ? 5 : 7;
+
+        const jumpInterval = setInterval(() => {
+            if (position >= 180) {
+                clearInterval(jumpInterval);
                 fall();
+            } else {
+                position += jumpVelocity;
+                mAndM.style.bottom = position + 'px';
             }
-        }
-        
-        window.jumpAnimation = requestAnimationFrame(jumpStep);
+        }, window.innerWidth <= 768 ? 20 : 16);
     }
 }
 
@@ -153,76 +139,39 @@ function doubleJump() {
     doubleJumpsRemaining--;
     updateDoubleJumpCounter();
     
-    // Cancel any existing animations
-    if (window.fallAnimation) {
-        cancelAnimationFrame(window.fallAnimation);
-    }
-    if (window.jumpAnimation) {
-        cancelAnimationFrame(window.jumpAnimation);
-    }
-    if (window.doubleJumpAnimation) {
-        cancelAnimationFrame(window.doubleJumpAnimation);
+    if (window.fallInterval) {
+        clearInterval(window.fallInterval);
     }
     
-    const isMobile = window.innerWidth <= 768;
-    const jumpHeight = isMobile ? BASE_JUMP_HEIGHT * 0.6 : BASE_JUMP_HEIGHT * 0.75;
-    const jumpDuration = isMobile ? BASE_JUMP_DURATION * 1.2 : BASE_JUMP_DURATION;
+    let position = parseInt(mAndM.style.bottom);
+    let jumpVelocity = window.innerWidth <= 768 ? 5 : 7;
+    let maxHeight = position + 120;
     
-    let startTime = null;
-    let startPosition = parseInt(mAndM.style.bottom);
-    
-    function doubleJumpStep(timestamp) {
-        if (!startTime) startTime = timestamp;
-        const progress = (timestamp - startTime) / jumpDuration;
-        
-        if (progress < 1) {
-            // Use sine curve for smooth jump motion
-            const currentHeight = startPosition + (jumpHeight * Math.sin(progress * Math.PI));
-            mAndM.style.bottom = `${currentHeight}px`;
-            window.doubleJumpAnimation = requestAnimationFrame(doubleJumpStep);
-        } else {
-            if (window.doubleJumpAnimation) {
-                cancelAnimationFrame(window.doubleJumpAnimation);
-            }
+    const doubleJumpInterval = setInterval(() => {
+        if (position >= maxHeight) {
+            clearInterval(doubleJumpInterval);
             fall();
+        } else {
+            position += jumpVelocity;
+            mAndM.style.bottom = position + 'px';
         }
-    }
-    
-    window.doubleJumpAnimation = requestAnimationFrame(doubleJumpStep);
+    }, window.innerWidth <= 768 ? 20 : 16);
 }
 
 function fall() {
-    const isMobile = window.innerWidth <= 768;
-    const fallDuration = isMobile ? BASE_FALL_DURATION * 1.2 : BASE_FALL_DURATION;
+    let position = parseInt(mAndM.style.bottom);
+    let fallVelocity = window.innerWidth <= 768 ? 2.5 : 3.5;
     
-    let startTime = null;
-    let startPosition = parseInt(mAndM.style.bottom);
-    
-    function fallStep(timestamp) {
-        if (!startTime) startTime = timestamp;
-        const progress = (timestamp - startTime) / fallDuration;
-        
-        if (progress < 1) {
-            let currentHeight;
-            if (isMobile) {
-                // Keep smooth cosine curve for mobile
-                currentHeight = startPosition + ((20 - startPosition) * (1 - Math.cos(progress * Math.PI / 2)));
-            } else {
-                // Linear fall for desktop
-                currentHeight = startPosition + ((20 - startPosition) * progress);
-            }
-            mAndM.style.bottom = `${currentHeight}px`;
-            window.fallAnimation = requestAnimationFrame(fallStep);
-        } else {
-            if (window.fallAnimation) {
-                cancelAnimationFrame(window.fallAnimation);
-            }
+    window.fallInterval = setInterval(() => {
+        if (position <= 20) {
+            clearInterval(window.fallInterval);
             mAndM.style.bottom = '20px';
             isJumping = false;
+        } else {
+            position -= fallVelocity;
+            mAndM.style.bottom = position + 'px';
         }
-    }
-    
-    window.fallAnimation = requestAnimationFrame(fallStep);
+    }, window.innerWidth <= 768 ? 20 : 16);
 }
 
 function moveBackgroundAndObstacles() {
