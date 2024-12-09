@@ -3,7 +3,6 @@ window.addEventListener('load', () => {
     showScreen('main-menu');
     initializeMobileControls();
     adjustGameLayout();
-    adjustGameScale();
 });
 
 const mAndM = document.getElementById('m-and-m');
@@ -408,68 +407,41 @@ function handleDeviceOrientation(event) {
 }
 
 function adjustGameLayout(isLandscape = window.innerWidth > window.innerHeight) {
+    const wrapper = document.querySelector('.game-wrapper');
     const gameContainer = document.getElementById('game-container');
     const scoreBar = document.getElementById('score-bar');
     const yesterdayScoreBar = document.getElementById('yesterday-score-bar');
 
+    // Calculate the game size based on viewport
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
     if (isLandscape) {
-        gameContainer.style.width = '100vw';
-        gameContainer.style.height = '100vh';
-        scoreBar.style.width = '100vw';
-        yesterdayScoreBar.style.width = '100vw';
+        // In landscape, base size on height
+        const gameHeight = viewportHeight - 80; // Account for score bars
+        const gameWidth = gameHeight * 4/3;
         
-        scoreBar.style.position = 'absolute';
-        scoreBar.style.zIndex = '1000';
-        yesterdayScoreBar.style.display = 'none';
+        wrapper.style.width = `${gameWidth}px`;
+        wrapper.style.height = `${viewportHeight}px`;
+        gameContainer.style.height = `${gameHeight}px`;
     } else {
-        gameContainer.style.width = '1200px';
-        gameContainer.style.height = '500px';
-        scoreBar.style.width = '1200px';
-        yesterdayScoreBar.style.width = '1200px';
+        // In portrait, base size on width
+        const gameWidth = Math.min(viewportWidth, 500); // Max width of 500px
+        const gameHeight = gameWidth * 3/4;
         
-        scoreBar.style.position = 'relative';
-        yesterdayScoreBar.style.display = 'flex';
+        wrapper.style.width = `${gameWidth}px`;
+        wrapper.style.height = `${gameHeight + 80}px`; // Add height for score bars
+        gameContainer.style.height = `${gameHeight}px`;
     }
+
+    // Score bars match wrapper width
+    scoreBar.style.width = '100%';
+    yesterdayScoreBar.style.width = '100%';
 }
 
-const meta = document.createElement('meta');
-meta.name = 'viewport';
-meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
-document.head.appendChild(meta);
-
 function adjustGameScale() {
-    const gameContainer = document.getElementById('game-container');
-    if (!gameContainer) return;
-
-    if (window.innerWidth <= 768) {
-        const isLandscape = window.innerWidth > window.innerHeight;
-        let scale;
-
-        if (isLandscape) {
-            // Landscape: Scale based on height
-            scale = Math.min(
-                window.innerHeight / 500,
-                window.innerWidth / 1200
-            );
-        } else {
-            // Portrait: Scale to fit width while maintaining aspect ratio
-            const containerWidth = Math.min(window.innerWidth, 500);
-            const availableHeight = window.innerHeight - 60; // Account for score bars
-            scale = Math.min(
-                containerWidth / 1200,
-                availableHeight / 500
-            );
-        }
-
-        gameContainer.style.transform = `scale(${scale})`;
-        
-        // Adjust obstacle spawn based on visible width
-        const visibleWidth = (window.innerWidth / scale);
-        window.mobileSpawnOffset = Math.min(1200, visibleWidth);
-    } else {
-        gameContainer.style.transform = 'none';
-        window.mobileSpawnOffset = 1200;
-    }
+    // Remove this function as we're handling everything in adjustGameLayout
+    adjustGameLayout();
 }
 
 // Event listeners for mobile

@@ -293,68 +293,67 @@ body {
         align-items: center;
         justify-content: center;
         background-color: black;
-    }
-
-    .game-wrapper {
-        width: 75vw;  /* This will maintain 4:3 with the height */
-        display: flex;
-        flex-direction: column;
-    }
-
-    #score-bar {
-        width: 60%;
-        height: 40px;
-        background-color: #333;
-        color: white;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0 15px;
-        box-sizing: border-box;
-        font-size: 16px;
-    }
-
-    #game-container {
-        width: 60%;
-        height: 100vw;  /* This creates 4:3 ratio with the 75vw width */
-        background-color: #87CEEB;
-        position: relative;
         overflow: hidden;
     }
 
-    #yesterday-score-bar {
-        width: 60%;
+    .game-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    #score-bar, #yesterday-score-bar {
         height: 40px;
         background-color: #333;
         color: white;
         display: flex;
-        justify-content: center;
         align-items: center;
-        font-size: 16px;
+        padding: 0 10px;
+        box-sizing: border-box;
+        font-size: 14px;
     }
 
-    /* Menu styling remains the same */
+    #score-bar {
+        justify-content: space-between;
+    }
+
+    #yesterday-score-bar {
+        justify-content: center;
+    }
+
+    #game-container {
+        width: 100%;
+        position: relative;
+        overflow: hidden;
+        background-color: #87CEEB;
+    }
+
     .menu-screen {
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
         background-color: rgba(34, 34, 34, 0.95);
-        padding: 30px;
+        padding: 20px;
         border-radius: 15px;
         text-align: center;
+        z-index: 1000;
     }
 
     .menu-button {
         width: 200px;
-        padding: 15px;
-        margin: 10px;
-        font-size: 20px;
+        padding: 12px;
+        margin: 8px;
+        font-size: 18px;
         background-color: #FF0000;
         color: white;
         border: none;
-        border-radius: 10px;
+        border-radius: 8px;
         cursor: pointer;
+    }
+
+    .menu-button:active {
+        background-color: #CC0000;
     }
 }
 
