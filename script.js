@@ -203,8 +203,14 @@ function fall() {
         const progress = (timestamp - startTime) / fallDuration;
         
         if (progress < 1) {
-            // Use cosine curve for smooth fall motion
-            const currentHeight = startPosition + ((20 - startPosition) * (1 - Math.cos(progress * Math.PI / 2)));
+            let currentHeight;
+            if (isMobile) {
+                // Keep smooth cosine curve for mobile
+                currentHeight = startPosition + ((20 - startPosition) * (1 - Math.cos(progress * Math.PI / 2)));
+            } else {
+                // Linear fall for desktop
+                currentHeight = startPosition + ((20 - startPosition) * progress);
+            }
             mAndM.style.bottom = `${currentHeight}px`;
             window.fallAnimation = requestAnimationFrame(fallStep);
         } else {
