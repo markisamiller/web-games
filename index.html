@@ -7,43 +7,45 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="score-bar">
-        <span id="current-score-display">Score: 0</span>
-        <span id="high-score-display">High Score: 0</span>
-    </div>
-    <div id="game-container">
-        <div id="m-and-m">m</div>
-        <div id="ground"></div>
-        <div id="obstacle"></div>
-
-        <!-- Main Menu Screen -->
-        <div id="main-menu" class="menu-screen">
-            <h1>The Great MScape</h1>
-            <button id="start-game-btn" class="menu-button">Start Game</button>
-            <button id="instructions-btn" class="menu-button">Instructions</button>
+    <div class="game-wrapper">
+        <div id="score-bar">
+            <span id="current-score-display">Score: 0</span>
+            <span id="high-score-display">High Score: 0</span>
         </div>
+        <div id="game-container">
+            <div id="m-and-m">m</div>
+            <div id="ground"></div>
+            <div id="obstacle"></div>
 
-        <!-- Instructions Screen -->
-        <div id="instructions-screen" class="menu-screen" style="display: none;">
-            <h2>How to Play</h2>
-            <p>Press SPACE to jump</p>
-            <p>Press SPACE while jumping to double jump</p>
-            <p>Avoid colliding with other M&Ms</p>
-            <p>Score increases with each successful jump</p>
-            <p>Consecutive jumps give bonus points!</p>
-            <button id="back-to-menu-btn" class="menu-button">Back to Menu</button>
-        </div>
+            <!-- Main Menu Screen -->
+            <div id="main-menu" class="menu-screen">
+                <h1>The Great MScape</h1>
+                <button id="start-game-btn" class="menu-button">Start Game</button>
+                <button id="instructions-btn" class="menu-button">Instructions</button>
+            </div>
 
-        <!-- Game Over Screen -->
-        <div id="game-over-screen" class="menu-screen" style="display: none;">
-            <h2>Game Over!</h2>
-            <p>Your Score: <span id="final-score">0</span></p>
-            <button id="restart-button" class="menu-button">Play Again</button>
-            <button id="menu-button" class="menu-button">Main Menu</button>
+            <!-- Instructions Screen -->
+            <div id="instructions-screen" class="menu-screen" style="display: none;">
+                <h2>How to Play</h2>
+                <p>Press SPACE to jump</p>
+                <p>Press SPACE while jumping to double jump</p>
+                <p>Avoid colliding with other M&Ms</p>
+                <p>Score increases with each successful jump</p>
+                <p>Consecutive jumps give bonus points!</p>
+                <button id="back-to-menu-btn" class="menu-button">Back to Menu</button>
+            </div>
+
+            <!-- Game Over Screen -->
+            <div id="game-over-screen" class="menu-screen" style="display: none;">
+                <h2>Game Over!</h2>
+                <p>Your Score: <span id="final-score">0</span></p>
+                <button id="restart-button" class="menu-button">Play Again</button>
+                <button id="menu-button" class="menu-button">Main Menu</button>
+            </div>
         </div>
-    </div>
-    <div id="yesterday-score-bar">
-        <span id="yesterday-score-display" style="font-weight: bold;">Yesterday's Top Score: 0</span>
+        <div id="yesterday-score-bar">
+            <span id="yesterday-score-display" style="font-weight: bold;">Yesterday's Top Score: 0</span>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>
