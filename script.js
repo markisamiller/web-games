@@ -29,6 +29,7 @@ const TOUCH_SENSITIVITY = 10;
 const BASE_JUMP_HEIGHT = 160;
 const BASE_JUMP_DURATION = 500; // in milliseconds
 const BASE_FALL_DURATION = 400; // in milliseconds
+const MAX_OBSTACLE_SPEED = window.innerWidth <= 768 ? 6 : 8;
 
 document.addEventListener('keydown', (event) => {
     if (event.code === 'Space' && gameActive) {
@@ -198,11 +199,14 @@ function moveBackgroundAndObstacles() {
             consecutiveJumps++;
             score += 10 * consecutiveJumps;
             
-            // Adjust speed increase based on device type
-            if (window.innerWidth <= 768) {
-                obstacleSpeed += 0.1; // Slower speed increase on mobile
-            } else {
-                obstacleSpeed += 0.2; // Original speed increase on desktop
+            // Only increase speed if below max speed
+            if (obstacleSpeed < MAX_OBSTACLE_SPEED) {
+                // Adjust speed increase based on device type
+                if (window.innerWidth <= 768) {
+                    obstacleSpeed = Math.min(MAX_OBSTACLE_SPEED, obstacleSpeed + 0.05); // Slower, smoother increase on mobile
+                } else {
+                    obstacleSpeed = Math.min(MAX_OBSTACLE_SPEED, obstacleSpeed + 0.1); // Original speed increase on desktop
+                }
             }
             
             updateScore();
@@ -241,7 +245,8 @@ function startGame() {
     obstacles = [];
     
     gameActive = true;
-    obstacleSpeed = INITIAL_SPEED;
+    // Start with slower initial speed on mobile
+    obstacleSpeed = window.innerWidth <= 768 ? 3 : INITIAL_SPEED;
     score = 0;
     backgroundPosition = 0;
     isJumping = false;
