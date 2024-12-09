@@ -25,6 +25,10 @@ let currentScreen = 'main-menu';
 let lastTouchTime = 0;
 const TOUCH_COOLDOWN = 300; // Minimum time between jumps in milliseconds
 
+// Mobile touch handling
+let touchStartY = 0;
+const TOUCH_SENSITIVITY = 10;
+
 document.addEventListener('keydown', (event) => {
     if (event.code === 'Space' && gameActive) {
         if (!isJumping) {
@@ -64,16 +68,19 @@ document.addEventListener('touchstart', handleTouch, { passive: false });
 document.addEventListener('touchend', handleTouch, { passive: false });
 
 function handleTouch(event) {
-    if (!event.target.closest('#game-container')) return;
+    if (!gameActive) return;
     
     event.preventDefault();
     
+    // Handle menu buttons
     if (event.target.classList.contains('menu-button')) {
         event.target.click();
         return;
     }
     
-    if (gameActive && event.type === 'touchstart') {
+    // Handle game touches
+    if (event.type === 'touchstart') {
+        touchStartY = event.touches[0].clientY;
         if (!isJumping) {
             jump();
         } else if (canDoubleJump && doubleJumpsRemaining > 0) {
@@ -431,31 +438,45 @@ meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-s
 document.head.appendChild(meta);
 
 function adjustGameScale() {
+    const gameContainer = document.getElementById('game-container');
+    if (!gameContainer) return;
+
     if (window.innerWidth <= 768) {
-        const gameContainer = document.getElementById('game-container');
-        const viewportHeight = window.innerHeight - 70; // Account for score bars
-        
-        // Calculate scale based on container width (75vw)
-        const containerWidth = window.innerWidth * 0.75; // 75vw
-        const scale = Math.min(
-            containerWidth / 1200,
-            viewportHeight / 500
-        );
-        
+        const isLandscape = window.innerWidth > window.innerHeight;
+        let scale;
+
+        if (isLandscape) {
+            // Landscape: Scale based on height
+            scale = Math.min(
+                window.innerHeight / 500,
+                window.innerWidth / 1200
+            );
+        } else {
+            // Portrait: Scale to fit width while maintaining aspect ratio
+            const containerWidth = Math.min(window.innerWidth, 500);
+            const availableHeight = window.innerHeight - 60; // Account for score bars
+            scale = Math.min(
+                containerWidth / 1200,
+                availableHeight / 500
+            );
+        }
+
         gameContainer.style.transform = `scale(${scale})`;
-        gameContainer.style.transformOrigin = 'top center';
         
-        // Adjust obstacle spawn position for narrower view
-        window.mobileSpawnOffset = containerWidth / scale;
+        // Adjust obstacle spawn based on visible width
+        const visibleWidth = (window.innerWidth / scale);
+        window.mobileSpawnOffset = Math.min(1200, visibleWidth);
     } else {
-        const gameContainer = document.getElementById('game-container');
         gameContainer.style.transform = 'none';
         window.mobileSpawnOffset = 1200;
     }
 }
 
-// Add window resize listener
+// Event listeners for mobile
+document.addEventListener('touchstart', handleTouch, { passive: false });
+document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
 window.addEventListener('resize', adjustGameScale);
+window.addEventListener('orientationchange', () => setTimeout(adjustGameScale, 100));
 window.addEventListener('load', adjustGameScale);
 
 initializeScores();
