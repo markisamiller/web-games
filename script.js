@@ -4,6 +4,7 @@ window.addEventListener('load', () => {
     initializeMobileControls();
     adjustGameLayout();
     updateInstructions();
+    fetchHighScores();
 });
 
 const mAndM = document.getElementById('m-and-m');
@@ -315,15 +316,51 @@ function updateScore() {
     document.getElementById('high-score-display').textContent = `High Score: ${highScore}`;
 }
 
+async function fetchHighScores() {
+    try {
+        const response = await fetch('/api/highscore');
+        const data = await response.json();
+        highScore = data.highScore;
+        yesterdayTopScore = data.yesterdayHighScore;
+        updateScore();
+    } catch (error) {
+        console.error('Error fetching high scores:', error);
+    }
+}
+
+async function updateHighScore(newScore) {
+    try {
+        const response = await fetch('/api/highscore', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ score: newScore })
+        });
+        const data = await response.json();
+        highScore = data.highScore;
+        yesterdayTopScore = data.yesterdayHighScore;
+        updateScore();
+    } catch (error) {
+        console.error('Error updating high score:', error);
+    }
+}
+
+function checkAndUpdateHighScore() {
+    if (score > highScore) {
+        updateHighScore(score);
+    }
+    document.getElementById('high-score-display').textContent = `High Score: ${highScore}`;
+    document.getElementById('yesterday-score-display').textContent = `Yesterday's Top Score: ${yesterdayTopScore}`;
+}
+
 function startGame() {
     hideAllScreens();
     obstacles.forEach(obstacle => obstacle.remove());
     obstacles = [];
     
-    const settings = getSettings();
-    
     gameActive = true;
-    obstacleSpeed = settings.initialSpeed;
+    obstacleSpeed = window.innerWidth <= 768 ? 3 : INITIAL_SPEED;
     score = 0;
     backgroundPosition = 0;
     isJumping = false;
@@ -331,6 +368,8 @@ function startGame() {
     canDoubleJump = false;
     updateDoubleJumpCounter();
     consecutiveJumps = 0;
+    
+    fetchHighScores();
     
     // Adjust player starting position
     const mAndM = document.getElementById('m-and-m');
@@ -423,31 +462,6 @@ function gameOver(collidedObstacle) {
         updateScore();
         showScreen('game-over-screen');
     }, 500);
-}
-
-function checkAndUpdateHighScore() {
-    let storedScore = localStorage.getItem('highScore');
-    let storedTimestamp = localStorage.getItem('highScoreTimestamp');
-    let currentTime = new Date().getTime();
-
-    if (!storedTimestamp || currentTime - storedTimestamp > 24 * 60 * 60 * 1000) {
-        yesterdayTopScore = highScore;
-        localStorage.setItem('yesterdayTopScore', yesterdayTopScore);
-        
-        highScore = 0;
-        localStorage.setItem('highScoreTimestamp', currentTime);
-    } else {
-        highScore = storedScore ? parseInt(storedScore) : 0;
-        yesterdayTopScore = localStorage.getItem('yesterdayTopScore') ? parseInt(localStorage.getItem('yesterdayTopScore')) : 0;
-    }
-
-    if (score > highScore) {
-        highScore = score;
-        localStorage.setItem('highScore', highScore);
-    }
-
-    document.getElementById('high-score-display').textContent = `High Score: ${highScore}`;
-    document.getElementById('yesterday-score-display').textContent = `Yesterday's Top Score: ${yesterdayTopScore}`;
 }
 
 function initializeScores() {

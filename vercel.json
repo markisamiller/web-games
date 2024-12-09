@@ -6,6 +6,10 @@
     {
       "source": "/",
       "destination": "/games/mscape/index.html"
+    },
+    {
+      "source": "/api/highscore",
+      "destination": "/api/highscore.js"
     }
   ],
   "redirects": [
