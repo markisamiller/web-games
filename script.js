@@ -3,6 +3,7 @@ window.addEventListener('load', () => {
     showScreen('main-menu');
     initializeMobileControls();
     adjustGameLayout();
+    updateInstructions();
 });
 
 const mAndM = document.getElementById('m-and-m');
@@ -19,10 +20,6 @@ let canDoubleJump = false;
 let consecutiveJumps = 0;
 let yesterdayTopScore = 0;
 let currentScreen = 'main-menu';
-
-// Add touch handling variables
-let lastTouchTime = 0;
-const TOUCH_COOLDOWN = 300; // Minimum time between jumps in milliseconds
 
 // Mobile touch handling
 let touchStartY = 0;
@@ -82,9 +79,8 @@ function handleTouch(event) {
         return;
     }
     
-    // Handle game touches
+    // Handle game touches - only on touchstart
     if (event.type === 'touchstart') {
-        touchStartY = event.touches[0].clientY;
         if (!isJumping) {
             jump();
         } else if (canDoubleJump && doubleJumpsRemaining > 0) {
@@ -151,12 +147,21 @@ function jump() {
 }
 
 function doubleJump() {
+    if (!canDoubleJump || doubleJumpsRemaining <= 0) return;
+    
     canDoubleJump = false;
     doubleJumpsRemaining--;
     updateDoubleJumpCounter();
     
+    // Cancel any existing animations
     if (window.fallAnimation) {
         cancelAnimationFrame(window.fallAnimation);
+    }
+    if (window.jumpAnimation) {
+        cancelAnimationFrame(window.jumpAnimation);
+    }
+    if (window.doubleJumpAnimation) {
+        cancelAnimationFrame(window.doubleJumpAnimation);
     }
     
     const isMobile = window.innerWidth <= 768;
@@ -428,17 +433,9 @@ function updateDoubleJumpCounter() {
 }
 
 function initializeMobileControls() {
-    document.addEventListener('touchstart', (event) => {
-        event.preventDefault();
-        if (gameActive) {
-            if (!isJumping) {
-                jump();
-            } else if (canDoubleJump && doubleJumpsRemaining > 0) {
-                doubleJump();
-            }
-        }
-    }, { passive: false });
-
+    // Remove the old touch listener since we're using handleTouch
+    document.addEventListener('touchstart', handleTouch, { passive: false });
+    
     window.addEventListener('orientationchange', handleOrientationChange);
     window.addEventListener('deviceorientation', handleDeviceOrientation);
 }
@@ -508,3 +505,38 @@ window.addEventListener('orientationchange', () => setTimeout(adjustGameScale, 1
 window.addEventListener('load', adjustGameScale);
 
 initializeScores();
+
+// Update the instructions for mobile
+function updateInstructions() {
+    const instructionsText = document.querySelector('#instructions-screen');
+    if (window.innerWidth <= 768) {
+        instructionsText.innerHTML = `
+            <h2>How to Play</h2>
+            <p>Tap screen to jump</p>
+            <p>Tap again while jumping to double jump</p>
+            <p>Avoid colliding with other M&Ms</p>
+            <p>Score increases with each successful jump</p>
+            <p>Consecutive jumps give bonus points!</p>
+            <button id="back-to-menu-btn" class="menu-button">Back to Menu</button>
+        `;
+    } else {
+        instructionsText.innerHTML = `
+            <h2>How to Play</h2>
+            <p>Press SPACE to jump</p>
+            <p>Press SPACE while jumping to double jump</p>
+            <p>Avoid colliding with other M&Ms</p>
+            <p>Score increases with each successful jump</p>
+            <p>Consecutive jumps give bonus points!</p>
+            <button id="back-to-menu-btn" class="menu-button">Back to Menu</button>
+        `;
+    }
+    // Reattach the event listener for the back button
+    document.getElementById('back-to-menu-btn').addEventListener('click', () => {
+        hideAllScreens();
+        showScreen('main-menu');
+    });
+}
+
+// Call updateInstructions on load and resize
+window.addEventListener('load', updateInstructions);
+window.addEventListener('resize', updateInstructions);
