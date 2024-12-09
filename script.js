@@ -265,7 +265,8 @@ function initializeObstacles() {
         obstacle.style.height = `${config.height}px`;
         obstacle.style.position = 'absolute';
         obstacle.style.bottom = '20px';
-        obstacle.style.left = `${1200 + index * 400}px`;
+        const spawnOffset = window.mobileSpawnOffset || 1200;
+        obstacle.style.left = `${spawnOffset + index * 400}px`;
         obstacle.style.borderRadius = '50%';
         obstacle.style.display = 'flex';
         obstacle.style.justifyContent = 'center';
@@ -432,16 +433,30 @@ document.head.appendChild(meta);
 function adjustGameScale() {
     if (window.innerWidth <= 768) {
         const gameContainer = document.getElementById('game-container');
-        const containerHeight = window.innerHeight - 70; // Subtract score bars height
-        const widthScale = window.innerWidth / 1200;
-        const heightScale = containerHeight / 500;
-        const scale = Math.min(widthScale, heightScale);
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight - 70; // Account for score bars
+        
+        // Calculate the ideal 4:3 dimensions
+        const idealWidth = viewportWidth;
+        const idealHeight = viewportWidth * (3/4);
+        
+        // Make sure it fits in viewport
+        const scale = Math.min(
+            viewportWidth / 1200,
+            idealHeight / 500,
+            viewportHeight / idealHeight
+        );
         
         gameContainer.style.transform = `scale(${scale})`;
         gameContainer.style.transformOrigin = 'top center';
+        
+        // Adjust obstacle spawn position for 4:3 ratio
+        const visibleWidth = viewportWidth / scale;
+        window.mobileSpawnOffset = Math.min(1200, visibleWidth);
     } else {
         const gameContainer = document.getElementById('game-container');
         gameContainer.style.transform = 'none';
+        window.mobileSpawnOffset = 1200;
     }
 }
 
