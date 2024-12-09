@@ -3,6 +3,7 @@ window.addEventListener('load', () => {
     showScreen('main-menu');
     initializeMobileControls();
     adjustGameLayout();
+    adjustGameScale();
 });
 
 const mAndM = document.getElementById('m-and-m');
@@ -244,6 +245,7 @@ function startGame() {
         cancelAnimationFrame(window.gameLoop);
     }
     
+    adjustGameScale();
     initializeObstacles();
     moveBackgroundAndObstacles();
 }
@@ -426,5 +428,18 @@ const meta = document.createElement('meta');
 meta.name = 'viewport';
 meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
 document.head.appendChild(meta);
+
+function adjustGameScale() {
+    if (window.innerWidth <= 768) {
+        const gameContainer = document.getElementById('game-container');
+        const scale = window.innerWidth / 1200; // 1200 is original width
+        gameContainer.style.transform = `scale(${scale})`;
+        gameContainer.style.transformOrigin = 'top center';
+    }
+}
+
+// Add window resize listener
+window.addEventListener('resize', adjustGameScale);
+window.addEventListener('load', adjustGameScale);
 
 initializeScores();
