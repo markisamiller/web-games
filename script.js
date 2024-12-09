@@ -194,7 +194,14 @@ function moveBackgroundAndObstacles() {
             obstacle.style.left = `${1200 + Math.random() * 400}px`;
             consecutiveJumps++;
             score += 10 * consecutiveJumps;
-            obstacleSpeed += 0.2;
+            
+            // Adjust speed increase based on device type
+            if (window.innerWidth <= 768) {
+                obstacleSpeed += 0.1; // Slower speed increase on mobile
+            } else {
+                obstacleSpeed += 0.2; // Original speed increase on desktop
+            }
+            
             updateScore();
         }
     });
@@ -240,10 +247,16 @@ function startGame() {
     updateDoubleJumpCounter();
     consecutiveJumps = 0;
     
-    // Ensure player starts at correct position
+    // Adjust player starting position
     const mAndM = document.getElementById('m-and-m');
     mAndM.style.bottom = '20px';
-    mAndM.style.left = '220px';
+    
+    // Set position based on screen size
+    if (window.innerWidth <= 768) {
+        mAndM.style.left = '20px'; // Move closer to left edge on mobile
+    } else {
+        mAndM.style.left = '220px'; // Original position on desktop
+    }
     
     document.getElementById('current-score-display').textContent = `Score: ${score}`;
     
@@ -251,7 +264,7 @@ function startGame() {
         cancelAnimationFrame(window.gameLoop);
     }
     
-    adjustGameScale();
+    adjustGameLayout();
     initializeObstacles();
     moveBackgroundAndObstacles();
 }
