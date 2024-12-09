@@ -6,33 +6,42 @@ body {
     align-items: center;
     height: 100vh;
     overflow: hidden;
-    background-color: transparent;
+    background-color: black;
 }
 
-#score-bar {
+.game-wrapper {
     width: 1200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#score-bar, #yesterday-score-bar {
+    width: 100%;
+    height: 40px;
     background-color: #333;
     color: white;
     display: flex;
-    justify-content: space-between;
-    padding: 10px;
+    align-items: center;
+    padding: 0 20px;
     box-sizing: border-box;
     font-size: 18px;
 }
 
-#current-score-display {
-    text-align: left;
+#score-bar {
+    justify-content: space-between;
 }
 
-#high-score-display {
-    text-align: right;
+#yesterday-score-bar {
+    justify-content: center;
 }
 
 #game-container {
-    width: 1200px;
+    width: 100%;
     height: 500px;
     position: relative;
     overflow: hidden;
+    background-color: #87CEEB;
     background-image: url('./background.JPG');
     background-repeat: repeat-x;
     background-size: auto 100%;
@@ -157,14 +166,11 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: rgba(0, 0, 0, 0.85);
-    padding: 30px;
+    background-color: rgba(34, 34, 34, 0.95);
+    padding: 20px;
     border-radius: 15px;
     text-align: center;
-    color: white;
-    min-width: 300px;
     z-index: 1000;
-    touch-action: manipulation;
 }
 
 .menu-screen h1 {
@@ -190,21 +196,18 @@ body {
 }
 
 .menu-button {
+    width: 200px;
+    padding: 12px;
+    margin: 8px;
+    font-size: 18px;
     background-color: #FF0000;
     color: white;
     border: none;
-    padding: 12px 24px;
-    margin: 10px;
-    border-radius: 5px;
-    font-size: 18px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    user-select: none;
 }
 
-.menu-button:hover {
+.menu-button:active {
     background-color: #CC0000;
 }
 
@@ -284,19 +287,8 @@ body {
 }
 
 @media (max-width: 768px) {
-    body {
-        margin: 0;
-        padding: 0;
-        width: 100vw;
-        height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: black;
-        overflow: hidden;
-    }
-
     .game-wrapper {
+        width: auto;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -304,56 +296,19 @@ body {
 
     #score-bar, #yesterday-score-bar {
         height: 40px;
-        background-color: #333;
-        color: white;
-        display: flex;
-        align-items: center;
         padding: 0 10px;
-        box-sizing: border-box;
         font-size: 14px;
-    }
-
-    #score-bar {
-        justify-content: space-between;
-    }
-
-    #yesterday-score-bar {
-        justify-content: center;
     }
 
     #game-container {
         width: 100%;
-        position: relative;
-        overflow: hidden;
-        background-color: #87CEEB;
+        height: auto;
+        aspect-ratio: 4/3;
     }
 
     .menu-screen {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background-color: rgba(34, 34, 34, 0.95);
-        padding: 20px;
-        border-radius: 15px;
-        text-align: center;
-        z-index: 1000;
-    }
-
-    .menu-button {
-        width: 200px;
-        padding: 12px;
-        margin: 8px;
-        font-size: 18px;
-        background-color: #FF0000;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-    }
-
-    .menu-button:active {
-        background-color: #CC0000;
+        width: 80%;
+        max-width: 300px;
     }
 }
 
