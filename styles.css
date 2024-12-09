@@ -163,6 +163,8 @@ body {
     text-align: center;
     color: white;
     min-width: 300px;
+    z-index: 1000;
+    touch-action: manipulation;
 }
 
 .menu-screen h1 {
@@ -197,6 +199,9 @@ body {
     font-size: 18px;
     cursor: pointer;
     transition: background-color 0.3s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
 }
 
 .menu-button:hover {
@@ -276,4 +281,40 @@ body {
     -ms-user-select: none;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 768px) {
+    .menu-button {
+        padding: 15px 30px;
+        font-size: 20px;
+        margin: 15px;
+        min-width: 200px;
+    }
+
+    .menu-screen {
+        width: 90%;
+        max-width: 400px;
+    }
+
+    .menu-screen h1 {
+        font-size: 28px;
+    }
+
+    .menu-screen p {
+        font-size: 16px;
+        margin: 8px 0;
+    }
+    
+    #game-container {
+        touch-action: manipulation;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+}
+
+/* Prevent any unwanted touch behaviors */
+* {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }

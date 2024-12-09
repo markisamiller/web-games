@@ -55,6 +55,39 @@ document.getElementById('menu-button').addEventListener('click', () => {
     showScreen('main-menu');
 });
 
+document.addEventListener('touchstart', handleTouch, { passive: false });
+document.addEventListener('touchend', handleTouch, { passive: false });
+
+function handleTouch(event) {
+    event.preventDefault();
+    
+    const target = event.target;
+    
+    if (target.classList.contains('menu-button')) {
+        target.click();
+    }
+    
+    if (gameActive && event.type === 'touchstart') {
+        if (!isJumping) {
+            jump();
+        } else if (canDoubleJump && doubleJumpsRemaining > 0) {
+            doubleJump();
+        }
+    }
+}
+
+const buttons = document.querySelectorAll('.menu-button');
+buttons.forEach(button => {
+    button.addEventListener('touchstart', () => {
+        button.style.opacity = '0.7';
+    });
+    
+    button.addEventListener('touchend', () => {
+        button.style.opacity = '1';
+        button.click();
+    });
+});
+
 function hideAllScreens() {
     const screens = ['main-menu', 'instructions-screen', 'game-over-screen'];
     screens.forEach(screenId => {
