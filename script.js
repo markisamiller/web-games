@@ -31,6 +31,29 @@ const BASE_JUMP_DURATION = 500; // in milliseconds
 const BASE_FALL_DURATION = 400; // in milliseconds
 const MAX_OBSTACLE_SPEED = window.innerWidth <= 768 ? 6 : 8;
 
+// Constants for physics
+const MOBILE_SETTINGS = {
+    jumpVelocity: 5,
+    fallVelocity: 3,
+    interval: 16,
+    initialSpeed: 3,
+    maxSpeed: 6,
+    speedIncrement: 0.03
+};
+
+const DESKTOP_SETTINGS = {
+    jumpVelocity: 7,
+    fallVelocity: 3.5,
+    interval: 16,
+    initialSpeed: 4,
+    maxSpeed: 8,
+    speedIncrement: 0.1
+};
+
+function getSettings() {
+    return window.innerWidth <= 768 ? MOBILE_SETTINGS : DESKTOP_SETTINGS;
+}
+
 document.addEventListener('keydown', (event) => {
     if (event.code === 'Space' && gameActive) {
         if (!isJumping) {
@@ -119,17 +142,34 @@ function jump() {
         isJumping = true;
         canDoubleJump = true;
         let position = 20;
-        let jumpVelocity = window.innerWidth <= 768 ? 5 : 7;
 
-        const jumpInterval = setInterval(() => {
-            if (position >= 180) {
-                clearInterval(jumpInterval);
-                fall();
-            } else {
-                position += jumpVelocity;
+        if (window.innerWidth <= 768) {
+            // Mobile version - using setTimeout for more consistent timing
+            function jumpStep() {
+                if (position >= 180) {
+                    fall();
+                    return;
+                }
+                position += 5;  // Fixed velocity for mobile
                 mAndM.style.bottom = position + 'px';
+                if (isJumping) {
+                    setTimeout(jumpStep, 16);
+                }
             }
-        }, window.innerWidth <= 768 ? 20 : 16);
+            jumpStep();
+        } else {
+            // Desktop version - unchanged
+            let jumpVelocity = 7;
+            const jumpInterval = setInterval(() => {
+                if (position >= 180) {
+                    clearInterval(jumpInterval);
+                    fall();
+                } else {
+                    position += jumpVelocity;
+                    mAndM.style.bottom = position + 'px';
+                }
+            }, 16);
+        }
     }
 }
 
@@ -145,34 +185,69 @@ function doubleJump() {
     }
     
     let position = parseInt(mAndM.style.bottom);
-    let jumpVelocity = window.innerWidth <= 768 ? 5 : 7;
     let maxHeight = position + 120;
-    
-    const doubleJumpInterval = setInterval(() => {
-        if (position >= maxHeight) {
-            clearInterval(doubleJumpInterval);
-            fall();
-        } else {
-            position += jumpVelocity;
+
+    if (window.innerWidth <= 768) {
+        // Mobile version
+        function doubleJumpStep() {
+            if (position >= maxHeight) {
+                fall();
+                return;
+            }
+            position += 5;  // Fixed velocity for mobile
             mAndM.style.bottom = position + 'px';
+            if (!isJumping) return;
+            setTimeout(doubleJumpStep, 16);
         }
-    }, window.innerWidth <= 768 ? 20 : 16);
+        doubleJumpStep();
+    } else {
+        // Desktop version - unchanged
+        let jumpVelocity = 7;
+        const doubleJumpInterval = setInterval(() => {
+            if (position >= maxHeight) {
+                clearInterval(doubleJumpInterval);
+                fall();
+            } else {
+                position += jumpVelocity;
+                mAndM.style.bottom = position + 'px';
+            }
+        }, 16);
+    }
 }
 
 function fall() {
     let position = parseInt(mAndM.style.bottom);
-    let fallVelocity = window.innerWidth <= 768 ? 2.5 : 3.5;
-    
-    window.fallInterval = setInterval(() => {
-        if (position <= 20) {
-            clearInterval(window.fallInterval);
-            mAndM.style.bottom = '20px';
-            isJumping = false;
-        } else {
-            position -= fallVelocity;
+
+    if (window.innerWidth <= 768) {
+        // Mobile version
+        function fallStep() {
+            if (position <= 20) {
+                mAndM.style.bottom = '20px';
+                isJumping = false;
+                return;
+            }
+            position -= 3;  // Fixed fall velocity for mobile
+            if (position < 20) position = 20;
             mAndM.style.bottom = position + 'px';
+            if (position > 20) {
+                setTimeout(fallStep, 16);
+            }
         }
-    }, window.innerWidth <= 768 ? 20 : 16);
+        fallStep();
+    } else {
+        // Desktop version - unchanged
+        let fallVelocity = 3.5;
+        window.fallInterval = setInterval(() => {
+            if (position <= 20) {
+                clearInterval(window.fallInterval);
+                mAndM.style.bottom = '20px';
+                isJumping = false;
+            } else {
+                position -= fallVelocity;
+                mAndM.style.bottom = position + 'px';
+            }
+        }, 16);
+    }
 }
 
 function moveBackgroundAndObstacles() {
@@ -199,13 +274,14 @@ function moveBackgroundAndObstacles() {
             consecutiveJumps++;
             score += 10 * consecutiveJumps;
             
-            // Only increase speed if below max speed
-            if (obstacleSpeed < MAX_OBSTACLE_SPEED) {
-                // Adjust speed increase based on device type
-                if (window.innerWidth <= 768) {
-                    obstacleSpeed = Math.min(MAX_OBSTACLE_SPEED, obstacleSpeed + 0.05); // Slower, smoother increase on mobile
-                } else {
-                    obstacleSpeed = Math.min(MAX_OBSTACLE_SPEED, obstacleSpeed + 0.1); // Original speed increase on desktop
+            // Speed increase based on device type
+            if (window.innerWidth <= 768) {
+                if (obstacleSpeed < 6) {  // Mobile max speed
+                    obstacleSpeed += 0.03;  // Very small increment for mobile
+                }
+            } else {
+                if (obstacleSpeed < 8) {  // Desktop max speed
+                    obstacleSpeed += 0.1;  // Original desktop increment
                 }
             }
             
@@ -244,9 +320,10 @@ function startGame() {
     obstacles.forEach(obstacle => obstacle.remove());
     obstacles = [];
     
+    const settings = getSettings();
+    
     gameActive = true;
-    // Start with slower initial speed on mobile
-    obstacleSpeed = window.innerWidth <= 768 ? 3 : INITIAL_SPEED;
+    obstacleSpeed = settings.initialSpeed;
     score = 0;
     backgroundPosition = 0;
     isJumping = false;
