@@ -433,26 +433,20 @@ document.head.appendChild(meta);
 function adjustGameScale() {
     if (window.innerWidth <= 768) {
         const gameContainer = document.getElementById('game-container');
-        const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight - 70; // Account for score bars
         
-        // Calculate the ideal 4:3 dimensions
-        const idealWidth = viewportWidth;
-        const idealHeight = viewportWidth * (3/4);
-        
-        // Make sure it fits in viewport
+        // Calculate scale based on container width (75vw)
+        const containerWidth = window.innerWidth * 0.75; // 75vw
         const scale = Math.min(
-            viewportWidth / 1200,
-            idealHeight / 500,
-            viewportHeight / idealHeight
+            containerWidth / 1200,
+            viewportHeight / 500
         );
         
         gameContainer.style.transform = `scale(${scale})`;
         gameContainer.style.transformOrigin = 'top center';
         
-        // Adjust obstacle spawn position for 4:3 ratio
-        const visibleWidth = viewportWidth / scale;
-        window.mobileSpawnOffset = Math.min(1200, visibleWidth);
+        // Adjust obstacle spawn position for narrower view
+        window.mobileSpawnOffset = containerWidth / scale;
     } else {
         const gameContainer = document.getElementById('game-container');
         gameContainer.style.transform = 'none';
