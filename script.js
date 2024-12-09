@@ -432,9 +432,16 @@ document.head.appendChild(meta);
 function adjustGameScale() {
     if (window.innerWidth <= 768) {
         const gameContainer = document.getElementById('game-container');
-        const scale = window.innerWidth / 1200; // 1200 is original width
+        const containerHeight = window.innerHeight - 70; // Subtract score bars height
+        const widthScale = window.innerWidth / 1200;
+        const heightScale = containerHeight / 500;
+        const scale = Math.min(widthScale, heightScale);
+        
         gameContainer.style.transform = `scale(${scale})`;
         gameContainer.style.transformOrigin = 'top center';
+    } else {
+        const gameContainer = document.getElementById('game-container');
+        gameContainer.style.transform = 'none';
     }
 }
 
