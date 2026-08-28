@@ -4,18 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Great MScape</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=86">
 </head>
 <body>
     <div class="game-wrapper">
         <div id="score-bar">
             <span id="current-score-display">Score: 0</span>
+            <button id="hud-restart-btn" class="hud-button">Restart</button>
             <span id="high-score-display">High Score: 0</span>
         </div>
         <div id="game-container">
-            <div id="m-and-m">m</div>
+            <div id="m-and-m" class="player">m</div>
             <div id="ground"></div>
-            <div id="obstacle"></div>
+            <div id="giant-skittle">
+                <span class="skittle-letter">S</span>
+                <div class="skittle-face">
+                    <span class="skittle-mouth"></span>
+                </div>
+            </div>
+            <div id="finish-line">FINISH</div>
+            <div id="screen-barrier"><span id="barrier-hits">0/10</span></div>
+            <canvas id="hitbox-layer"></canvas>
 
             <!-- Main Menu Screen -->
             <div id="main-menu" class="menu-screen">
@@ -27,26 +36,50 @@
             <!-- Instructions Screen -->
             <div id="instructions-screen" class="menu-screen" style="display: none;">
                 <h2>How to Play</h2>
-                <p>Press SPACE to jump</p>
-                <p>Press SPACE while jumping to double jump</p>
-                <p>Avoid colliding with other M&Ms</p>
+                <p>Hold W, SPACE, or UP to fly. Let go to fall</p>
+                <p>Press A or LEFT to go back, D or RIGHT to go forward</p>
+                <p>After 3 left or 3 right presses, those keys rest for a bit</p>
+                <p>Don't let a Skittle eat you</p>
+                <p>If the giant Skittle catches you, it jumps up. You teleport under it and try to escape. Then it smashes you</p>
+                <p>At chunk 5, the giant Skittle throws hungry Skittles at you</p>
+                <p>Don't touch the birds</p>
                 <p>Score increases with each successful jump</p>
+                <p>Reach the finish line at chunk 20</p>
+                <p>Don't bump the right wall more than 10 times</p>
+                <p>Press P to pause</p>
                 <p>Consecutive jumps give bonus points!</p>
                 <button id="back-to-menu-btn" class="menu-button">Back to Menu</button>
             </div>
 
             <!-- Game Over Screen -->
             <div id="game-over-screen" class="menu-screen" style="display: none;">
-                <h2>Game Over!</h2>
+                <h2 id="game-over-title">woop-woop</h2>
                 <p>Your Score: <span id="final-score">0</span></p>
                 <button id="restart-button" class="menu-button">Play Again</button>
                 <button id="menu-button" class="menu-button">Main Menu</button>
+            </div>
+
+            <!-- Pause Screen -->
+            <div id="pause-screen" class="menu-screen" style="display: none;">
+                <h2>Paused</h2>
+                <p>Press P or click Resume to play</p>
+                <button id="resume-button" class="menu-button">Resume</button>
+                <button id="pause-restart-button" class="menu-button">Restart</button>
+            </div>
+
+            <!-- You Win Screen -->
+            <div id="you-win-screen" class="menu-screen" style="display: none;">
+                <h2>You Win!</h2>
+                <p>You finished all 20 chunks!</p>
+                <p>Your Score: <span id="win-score">0</span></p>
+                <button id="win-restart-button" class="menu-button">Play Again</button>
+                <button id="win-menu-button" class="menu-button">Main Menu</button>
             </div>
         </div>
         <div id="yesterday-score-bar">
             <span id="yesterday-score-display" style="font-weight: bold;">Yesterday's Top Score: 0</span>
         </div>
     </div>
-    <script src="script.js"></script>
+    <script src="script.js?v=93"></script>
 </body>
 </html>

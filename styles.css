@@ -32,6 +32,21 @@ body {
     justify-content: space-between;
 }
 
+.hud-button {
+    padding: 4px 12px;
+    font-size: 14px;
+    background-color: #FF0000;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.hud-button:active {
+    background-color: #CC0000;
+}
+
 #yesterday-score-bar {
     justify-content: center;
 }
@@ -48,14 +63,12 @@ body {
     background-position: 0 0;
 }
 
-#m-and-m {
+.player {
     width: 40px;
     height: 40px;
-    background-color: #FF0000;
     border-radius: 50%;
     position: absolute;
     bottom: 20px;
-    left: 220px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -63,6 +76,404 @@ body {
     font-weight: bold;
     color: white;
     font-size: 20px;
+    transform-origin: center center;
+    z-index: 4;
+}
+
+#m-and-m {
+    left: 240px;
+    background-color: #FF0000;
+}
+
+.player.flying {
+    box-shadow: 0 10px 0 rgba(255, 255, 255, 0.35);
+}
+
+#finish-line {
+    position: absolute;
+    bottom: 20px;
+    width: 28px;
+    height: 180px;
+    left: 8000px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    box-sizing: border-box;
+    padding-bottom: 6px;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 9px;
+    color: #111;
+    letter-spacing: 0.5px;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    background: repeating-conic-gradient(#111 0% 25%, #fff 0% 50%) 50% / 14px 14px;
+    border: 2px solid #111;
+    z-index: 2;
+}
+
+#giant-skittle {
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    position: absolute;
+    bottom: 20px;
+    left: -80px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    color: white;
+    font-size: 110px;
+    background-color: #ED1C24;
+    text-shadow: 0 3px 4px rgba(0, 0, 0, 0.35);
+    box-shadow: inset 0 14px 20px rgba(255, 255, 255, 0.45), inset 0 -12px 16px rgba(0, 0, 0, 0.25);
+    transform-origin: center center;
+    overflow: hidden;
+    z-index: 3;
+}
+
+.chase-bird {
+    width: 40px;
+    height: 40px;
+    position: absolute;
+    bottom: 200px;
+    left: -80px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 34px;
+    line-height: 1;
+    z-index: 5;
+}
+
+.chase-bird.facing-right {
+    transform: scaleX(-1);
+}
+
+.bird-face {
+    display: inline-block;
+    animation: bird-flap 0.35s ease-in-out infinite;
+}
+
+@keyframes bird-flap {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+#screen-barrier {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 22px;
+    height: 100%;
+    background: transparent;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#screen-barrier.kill-wall {
+    background: transparent;
+}
+
+#barrier-hits {
+    display: none;
+}
+
+#hitbox-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 6;
+    display: none;
+}
+
+#you-win-screen h2 {
+    color: #FFD100;
+}
+
+.skittle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    position: absolute;
+    bottom: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    color: white;
+    font-size: 18px;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+    box-shadow: inset 0 5px 8px rgba(255, 255, 255, 0.55), inset 0 -4px 5px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+.hungry-skittle {
+    z-index: 4;
+    animation: hungry-spin 0.4s linear infinite;
+}
+
+.hungry-skittle .skittle-mouth {
+    width: 58%;
+    height: 24%;
+}
+
+.hungry-skittle.eating {
+    animation: none;
+}
+
+@keyframes hungry-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.skittle-letter {
+    position: relative;
+    z-index: 1;
+    line-height: 1;
+}
+
+.skittle-face {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.skittle-mouth {
+    position: absolute;
+    left: 50%;
+    bottom: 16%;
+    width: 38%;
+    height: 14%;
+    transform: translateX(-50%);
+    background: #1a1a1a;
+    border-radius: 0 0 20px 20px;
+}
+
+.skittle.eating,
+#giant-skittle.eating,
+#giant-skittle.smashing,
+#giant-skittle.smashing-down,
+#giant-skittle.jumping-up,
+#giant-skittle.trapping {
+    z-index: 5;
+}
+
+.player.teleporting {
+    visibility: hidden;
+}
+
+.player.under-giant {
+    z-index: 2;
+}
+
+.teleport-pop {
+    position: absolute;
+    width: 54px;
+    height: 54px;
+    margin-left: -27px;
+    margin-top: -27px;
+    border: 4px solid #B44AFF;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 8;
+    animation: teleport-pop 0.35s ease-out forwards;
+}
+
+@keyframes teleport-pop {
+    0% {
+        transform: scale(0.2);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1.9);
+        opacity: 0;
+    }
+}
+
+.player.trying-to-escape {
+    animation: try-escape 0.9s ease-in-out forwards;
+}
+
+@keyframes try-escape {
+    0% {
+        transform: translateX(0) scale(0.8, 0.62);
+    }
+    18% {
+        transform: translateX(20px) rotate(-16deg) scale(0.8, 0.62);
+    }
+    36% {
+        transform: translateX(-14px) rotate(14deg) scale(0.8, 0.62);
+    }
+    54% {
+        transform: translateX(72px) rotate(-10deg) scale(0.86, 0.68);
+    }
+    76% {
+        transform: translateX(108px) rotate(8deg) scale(0.92, 0.74);
+    }
+    100% {
+        transform: translateX(36px) rotate(0deg) scale(0.8, 0.62);
+    }
+}
+
+#giant-skittle.jumping-up {
+    animation: giant-jump-up 0.4s ease-out forwards;
+}
+
+@keyframes giant-jump-up {
+    0% {
+        bottom: 20px;
+        transform: rotate(0deg) scale(1);
+    }
+    100% {
+        bottom: 170px;
+        transform: rotate(0deg) scale(1.04, 0.96);
+    }
+}
+
+#giant-skittle.smashing-down {
+    animation: giant-smash-down 0.45s ease-in forwards;
+}
+
+@keyframes giant-smash-down {
+    0% {
+        bottom: 170px;
+        transform: rotate(0deg) scale(1.04, 0.96);
+    }
+    75% {
+        bottom: 20px;
+        transform: rotate(0deg) scale(1.28, 0.62);
+    }
+    88% {
+        bottom: 32px;
+        transform: rotate(0deg) scale(0.94, 1.12);
+    }
+    100% {
+        bottom: 20px;
+        transform: rotate(0deg) scale(1.12, 0.82);
+    }
+}
+
+.player.being-smashed {
+    animation: get-smashed 0.45s ease-in forwards;
+    z-index: 2;
+}
+
+@keyframes get-smashed {
+    0%, 70% {
+        transform: scale(0.8, 0.62);
+        opacity: 1;
+    }
+    82% {
+        transform: scale(1.7, 0.1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1.7, 0.1);
+        opacity: 1;
+    }
+}
+
+.smash-shake {
+    animation: smash-shake 0.25s ease-out;
+}
+
+@keyframes smash-shake {
+    0%, 100% { transform: translateY(0); }
+    30% { transform: translateY(10px); }
+    60% { transform: translateY(-5px); }
+}
+
+.eating .skittle-letter {
+    opacity: 0;
+}
+
+.eating .skittle-mouth {
+    width: 70%;
+    height: 46%;
+    bottom: 7%;
+    border-radius: 50%;
+    background: #2a0000;
+    box-shadow: inset 0 5px 0 #fff;
+    animation: skittle-chomp 0.2s ease-out 2;
+}
+
+#giant-skittle.eating .skittle-mouth {
+    box-shadow: inset 0 28px 0 #fff;
+}
+
+@keyframes skittle-chomp {
+    0% {
+        width: 38%;
+        height: 14%;
+    }
+    55% {
+        width: 74%;
+        height: 52%;
+    }
+    100% {
+        width: 70%;
+        height: 46%;
+    }
+}
+
+.player.being-eaten {
+    animation: get-eaten 0.28s ease-in forwards;
+    z-index: 4;
+}
+
+.player.destroyed {
+    visibility: hidden;
+}
+
+@keyframes get-eaten {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--eat-x, 0px), var(--eat-y, 0px)) scale(0);
+        opacity: 0;
+    }
+}
+
+#eat-bits-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 7;
+}
+
+.player-bit {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 7;
+    transform: translate(-50%, -50%);
+    animation: bit-fly 0.45s ease-out forwards;
+}
+
+@keyframes bit-fly {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(calc(-50% + var(--bit-x)), calc(-50% + var(--bit-y))) scale(0.2);
+        opacity: 0;
+    }
 }
 
 #ground {
@@ -71,15 +482,6 @@ body {
     background-color: #8B4513;
     position: absolute;
     bottom: 0;
-}
-
-#obstacle {
-    width: 20px;
-    height: 40px;
-    background-color: #228B22;
-    position: absolute;
-    bottom: 20px;
-    left: 1200px;
 }
 
 #game-over-screen {
