@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/",
-      "destination": "/games/mscape/index.html"
+      "destination": "/index.html"
     },
     {
       "source": "/api/highscore",
