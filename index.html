@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Great MScape</title>
-    <link rel="stylesheet" href="styles.css?v=86">
+    <link rel="stylesheet" href="styles.css?v=92">
 </head>
 <body>
     <div class="game-wrapper">
@@ -22,7 +22,12 @@
                     <span class="skittle-mouth"></span>
                 </div>
             </div>
-            <div id="finish-line">FINISH</div>
+            <div id="checkpoint-flag">
+                <span class="flag-pole"></span>
+                <span class="flag-cloth">CHECK</span>
+            </div>
+            <div id="finish-line">LEVEL 2</div>
+            <div id="level-banner">LEVEL 2</div>
             <div id="screen-barrier"><span id="barrier-hits">0/10</span></div>
             <canvas id="hitbox-layer"></canvas>
 
@@ -36,15 +41,18 @@
             <!-- Instructions Screen -->
             <div id="instructions-screen" class="menu-screen" style="display: none;">
                 <h2>How to Play</h2>
-                <p>Hold W, SPACE, or UP to fly. Let go to fall</p>
+                <p>Press W, SPACE, or UP to jump</p>
+                <p>Press again while jumping to double jump</p>
                 <p>Press A or LEFT to go back, D or RIGHT to go forward</p>
                 <p>After 3 left or 3 right presses, those keys rest for a bit</p>
                 <p>Don't let a Skittle eat you</p>
                 <p>If the giant Skittle catches you, it jumps up. You teleport under it and try to escape. Then it smashes you</p>
-                <p>At chunk 5, the giant Skittle throws hungry Skittles at you</p>
+                <p>At chunk 5, the giant Skittle throws hungry Skittles that chase you until they eat you, a bird, or another Skittle</p>
                 <p>Don't touch the birds</p>
+                <p>The giant Skittle eats birds and other Skittles</p>
                 <p>Score increases with each successful jump</p>
-                <p>Reach the finish line at chunk 20</p>
+                <p>Finish level 1 to start level 2. There's a checkpoint there</p>
+                <p>If you die in level 2, press Checkpoint to start there</p>
                 <p>Don't bump the right wall more than 10 times</p>
                 <p>Press P to pause</p>
                 <p>Consecutive jumps give bonus points!</p>
@@ -70,7 +78,7 @@
             <!-- You Win Screen -->
             <div id="you-win-screen" class="menu-screen" style="display: none;">
                 <h2>You Win!</h2>
-                <p>You finished all 20 chunks!</p>
+                <p id="win-blurb">You finished Level 2!</p>
                 <p>Your Score: <span id="win-score">0</span></p>
                 <button id="win-restart-button" class="menu-button">Play Again</button>
                 <button id="win-menu-button" class="menu-button">Main Menu</button>
@@ -80,6 +88,6 @@
             <span id="yesterday-score-display" style="font-weight: bold;">Yesterday's Top Score: 0</span>
         </div>
     </div>
-    <script src="script.js?v=93"></script>
+    <script src="script.js?v=109"></script>
 </body>
 </html>
