@@ -32,6 +32,34 @@ body {
     justify-content: space-between;
 }
 
+.score-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+#hungry-bye {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 16px;
+    background: rgba(0, 0, 0, 0.75);
+    color: #FFD100;
+    font-size: 20px;
+    font-weight: bold;
+    border-radius: 8px;
+    z-index: 20;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+}
+
+#hungry-bye.show {
+    opacity: 1;
+    visibility: visible;
+}
+
 .hud-button {
     padding: 4px 12px;
     font-size: 14px;
@@ -63,6 +91,34 @@ body {
     background-position: 0 0;
 }
 
+#game-container.dungeon {
+    background-color: #1a1410;
+    background-image: url('./dungeon-background.png');
+}
+
+#game-container.dungeon #ground {
+    background-color: #3a2a1c;
+}
+
+#game-container.night {
+    background-color: #070b18;
+    background-image:
+        radial-gradient(1px 1px at 8% 18%, #fff 50%, transparent 51%),
+        radial-gradient(1px 1px at 22% 42%, #fff 50%, transparent 51%),
+        radial-gradient(2px 2px at 36% 12%, #ffe9a8 50%, transparent 51%),
+        radial-gradient(1px 1px at 48% 28%, #fff 50%, transparent 51%),
+        radial-gradient(1px 1px at 61% 8%, #fff 50%, transparent 51%),
+        radial-gradient(2px 2px at 74% 34%, #dce7ff 50%, transparent 51%),
+        radial-gradient(1px 1px at 88% 16%, #fff 50%, transparent 51%),
+        radial-gradient(1px 1px at 16% 62%, #fff 50%, transparent 51%),
+        radial-gradient(2px 2px at 92% 48%, #fff 50%, transparent 51%),
+        linear-gradient(#070b18 0%, #14102c 55%, #3a1230 78%, #6b1d18 100%);
+}
+
+#game-container.night #ground {
+    background-color: #3a1410;
+}
+
 .player {
     width: 40px;
     height: 40px;
@@ -82,7 +138,150 @@ body {
 
 #m-and-m {
     left: 240px;
-    background-color: #FF0000;
+    background-color: var(--player-color, #FF0000);
+}
+
+.player-name {
+    position: absolute;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    text-shadow: 0 1px 2px #000;
+    white-space: nowrap;
+    z-index: 5;
+    pointer-events: none;
+    display: none;
+}
+
+#m-and-m.split,
+#m-and-m.one-half,
+#m-and-m.one-quarter {
+    background-color: transparent;
+}
+
+.player .half {
+    display: none;
+}
+
+.player.split {
+    background-color: transparent;
+}
+
+.player.split .player-letter {
+    display: none;
+}
+
+.player.split .half {
+    display: block;
+    position: absolute;
+    top: 0;
+    width: 18px;
+    height: 40px;
+    background-color: var(--player-color, #FF0000);
+}
+
+.player.split .half.left {
+    left: -4px;
+    border-radius: 20px 2px 2px 20px;
+}
+
+.player.split .half.right {
+    right: -4px;
+    border-radius: 2px 20px 20px 2px;
+}
+
+.player.one-half {
+    background-color: transparent;
+}
+
+.player.one-half .player-letter,
+.player.one-half .half.left {
+    display: none;
+}
+
+.player.one-half .half.right {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 20px;
+    width: 20px;
+    height: 40px;
+    overflow: hidden;
+    background-color: var(--player-color, #FF0000);
+    border-radius: 0 20px 20px 0;
+}
+
+.half-letter {
+    position: absolute;
+    top: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 20px;
+    font-family: Arial, sans-serif;
+    line-height: 40px;
+}
+
+.player.one-half .half.right .half-letter {
+    left: -20px;
+}
+
+.left-behind-half {
+    position: absolute;
+    width: 20px;
+    height: 40px;
+    overflow: hidden;
+    background-color: var(--player-color, #FF0000);
+    border-radius: 20px 0 0 20px;
+    z-index: 4;
+    pointer-events: none;
+}
+
+.left-behind-half .half-letter {
+    left: 0;
+}
+
+.player.one-quarter .player-letter,
+.player.one-quarter .half.left {
+    display: none;
+}
+
+.player.one-quarter .half.right {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 20px;
+    width: 20px;
+    height: 20px;
+    overflow: hidden;
+    background-color: var(--player-color, #FF0000);
+    border-radius: 0 20px 0 0;
+}
+
+.player.one-quarter .half.right .half-letter {
+    left: -20px;
+    top: 0;
+}
+
+.left-behind-quarter {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    overflow: hidden;
+    background-color: var(--player-color, #FF0000);
+    border-radius: 0 0 20px 0;
+    z-index: 4;
+    pointer-events: none;
+}
+
+.left-behind-quarter .half-letter {
+    left: -20px;
+    top: -20px;
 }
 
 .player.flying {
@@ -591,7 +790,8 @@ body {
 }
 
 .player.being-eaten,
-.being-eaten-by-giant {
+.being-eaten-by-giant,
+.left-behind-half.being-eaten {
     animation: get-eaten 0.28s ease-in forwards;
     z-index: 4;
     pointer-events: none;
@@ -661,6 +861,29 @@ body {
     border-radius: 10px;
     text-align: center;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+#hearts-bar {
+    width: 100%;
+    height: 36px;
+    background-color: #222;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    box-sizing: border-box;
+}
+
+.heart {
+    font-size: 28px;
+    line-height: 1;
+    color: #FF2A2A;
+    text-shadow: 0 1px 0 #7a0000;
+}
+
+.heart.lost {
+    color: #444;
+    text-shadow: none;
 }
 
 #yesterday-score-bar {
@@ -740,16 +963,41 @@ body {
     border-radius: 15px;
     text-align: center;
     z-index: 1000;
+    max-height: calc(100% - 24px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.menu-screen::-webkit-scrollbar {
+    width: 12px;
+}
+
+.menu-screen::-webkit-scrollbar-track {
+    background: #222;
+    border-radius: 8px;
+}
+
+.menu-screen::-webkit-scrollbar-thumb {
+    background: #FF0000;
+    border-radius: 8px;
 }
 
 .menu-screen h1 {
     color: #FF0000;
     font-size: 42px;
-    margin-bottom: 30px;
+    margin-bottom: 8px;
     text-transform: uppercase;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
     font-family: 'Arial Black', sans-serif;
     letter-spacing: 2px;
+}
+
+.by-line {
+    color: #FFD100;
+    font-size: 22px;
+    margin: 0 0 24px;
+    letter-spacing: 1px;
 }
 
 .menu-screen h2 {
@@ -778,6 +1026,147 @@ body {
 
 .menu-button:active {
     background-color: #CC0000;
+}
+
+.customize-preview {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin: 0 auto 10px;
+    background-color: var(--player-color, #FF0000);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 20px;
+}
+
+.customize-label {
+    margin: 8px 0 6px;
+}
+
+.color-choices {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.color-choice {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid white;
+    cursor: pointer;
+    padding: 0;
+}
+
+.color-choice.selected {
+    outline: 3px solid #FFD100;
+    outline-offset: 2px;
+}
+
+.maps-menu {
+    width: min(520px, calc(100% - 24px));
+}
+
+.map-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 8px 0 12px;
+}
+
+.map-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #555;
+    border-radius: 12px;
+    background: #1a1a1a;
+    color: white;
+    cursor: pointer;
+}
+
+.map-card:hover,
+.map-card:focus {
+    border-color: #FFD100;
+}
+
+.map-pic {
+    display: block;
+    width: 100%;
+    height: 88px;
+    border-radius: 8px;
+    background-size: cover;
+    background-position: center;
+}
+
+.map-pic-1 {
+    background-image: url('./background.JPG');
+}
+
+.map-pic-2 {
+    background-image: url('./dungeon-background.png');
+    background-color: #1a1410;
+}
+
+.map-pic-3 {
+    background-color: #070b18;
+    background-image:
+        radial-gradient(1px 1px at 12% 24%, #fff 50%, transparent 51%),
+        radial-gradient(1px 1px at 38% 16%, #fff 50%, transparent 51%),
+        radial-gradient(2px 2px at 70% 30%, #ffe9a8 50%, transparent 51%),
+        radial-gradient(1px 1px at 86% 18%, #fff 50%, transparent 51%),
+        linear-gradient(#070b18 0%, #14102c 55%, #6b1d18 100%);
+}
+
+.map-title {
+    margin-top: 8px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #FFD100;
+}
+
+.map-look {
+    font-size: 15px;
+    color: #ddd;
+}
+
+.map-lock {
+    display: none;
+    margin-top: 4px;
+    color: #ff8a8a;
+    font-weight: bold;
+}
+
+.map-card.locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.map-card.locked:hover,
+.map-card.locked:focus {
+    border-color: #555;
+}
+
+.map-card.locked .map-lock {
+    display: block;
+}
+
+#nickname-input {
+    width: 200px;
+    padding: 8px 10px;
+    margin: 0 0 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    text-align: center;
+    box-sizing: border-box;
 }
 
 /* Add mobile responsive styles */

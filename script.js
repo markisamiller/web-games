@@ -4,6 +4,12 @@ window.addEventListener('load', () => {
     initializeMobileControls();
     adjustGameLayout();
     placePlayerOnScreen();
+    loadPlayerLook();
+    if (!localStorage.getItem('mscape-reset-play')) {
+        localStorage.setItem('mscape-reset-play', '1');
+        localStorage.setItem(UNLOCKED_LEVEL_KEY, '1');
+    }
+    loadUnlockedLevels();
     updateInstructions();
     fetchHighScores();
 });
@@ -28,7 +34,7 @@ const JUMP_SPACING = 200;
 const CHUNK_SIZE = 1200;
 const MAP_CHUNKS = 20;
 const MAP_LENGTH = CHUNK_SIZE * MAP_CHUNKS + 200;
-const MAX_LEVEL = 2;
+const MAX_LEVEL = 3;
 let currentLevel = 1;
 let checkpointLevel = 1;
 let checkpointScore = 0;
@@ -57,6 +63,8 @@ let birds = [];
 let giantWorldX = GIANT_START_X;
 const SKITTLE_SPAWN_DELAY_MS = 3000;
 let noSkittleUntil = 0;
+const HUNGRY_STOP_CHUNK = 5;
+let hungryStopped = false;
 const THROW_START_CHUNK = 5;
 const THROW_EVERY_FRAMES = 80;
 const THROWN_SKITTLE_SIZE = 40;
@@ -67,6 +75,24 @@ let thrownSkittles = [];
 let throwCooldown = 0;
 const BARRIER_WIDTH = 22;
 const BARRIER_SAFE_HITS = 10;
+const MAX_HEARTS = 3;
+let hearts = MAX_HEARTS;
+let playerIsSplit = false;
+let playerIsQuarter = false;
+let hurtUntil = 0;
+let smashPlaying = false;
+let gameOverTimer = null;
+let soundOn = true;
+let showHitboxes = true;
+let flyOn = false;
+const PLAYER_LOOK_KEY = 'mscape-player-look';
+const UNLOCKED_LEVEL_KEY = 'mscape-unlocked-level';
+let unlockedLevel = 1;
+const PLAYER_COLORS = ['#FF0000', '#FF8A00', '#FFE600', '#2ECC40', '#0074D9', '#B44AFF', '#FF69B4', '#6B3A2A'];
+let playerColor = '#FF0000';
+let playerNickname = '';
+let settingsReturnScreen = 'main-menu';
+let settingsPausedGame = false;
 let barrierHits = 0;
 let barrierTouching = false;
 
@@ -75,7 +101,7 @@ let touchStartY = 0;
 const TOUCH_SENSITIVITY = 10;
 
 // Add these constants at the top with other constants
-const BASE_JUMP_HEIGHT = 40;
+const BASE_JUMP_HEIGHT = 150;
 const BASE_JUMP_DURATION = 500; // in milliseconds
 const BASE_FALL_DURATION = 400; // in milliseconds
 const MAX_OBSTACLE_SPEED = window.innerWidth <= 768 ? 6 : 8;
@@ -121,6 +147,7 @@ function unlockGameSounds() {
 }
 
 function playSoundNow(sound) {
+    if (!soundOn) return;
     const clip = sound.cloneNode();
     clip.muted = false;
     clip.play().catch(() => {
@@ -195,6 +222,7 @@ function isRightKey(code) {
 }
 
 document.addEventListener('keydown', (event) => {
+    if (event.target.closest('input')) return;
     if (event.code === 'KeyP' || event.code === 'Escape') {
         event.preventDefault();
         if (event.repeat) return;
@@ -205,7 +233,7 @@ document.addEventListener('keydown', (event) => {
         }
         return;
     }
-    if (event.code === 'KeyR' && (gameActive || isPaused)) {
+    if (event.code === 'KeyR') {
         event.preventDefault();
         if (event.repeat) return;
         startGame();
@@ -214,8 +242,11 @@ document.addEventListener('keydown', (event) => {
     if (!gameActive || isPaused) return;
     if (isJumpKey(event)) {
         event.preventDefault();
-        if (event.repeat) return;
-        tryJump();
+        if (flyOn && hearts > 1) {
+            heldKeys.add(event.code);
+        } else if (!flyOn) {
+            tryJump();
+        }
         return;
     }
     if (isLeftKey(event.code) || isRightKey(event.code)) {
@@ -285,13 +316,78 @@ document.getElementById('hud-restart-btn').addEventListener('click', () => {
     startGame();
 });
 
+document.getElementById('settings-btn').addEventListener('click', () => {
+    openSettings();
+});
+
+document.getElementById('sound-toggle-btn').addEventListener('click', () => {
+    soundOn = !soundOn;
+    updateSettingsButtons();
+});
+
+document.getElementById('hitbox-toggle-btn').addEventListener('click', () => {
+    showHitboxes = !showHitboxes;
+    updateSettingsButtons();
+    drawHitboxes();
+});
+
+document.getElementById('fly-toggle-btn').addEventListener('click', () => {
+    flyOn = !flyOn;
+    updateSettingsButtons();
+    updateInstructions();
+});
+
+document.getElementById('close-settings-btn').addEventListener('click', () => {
+    closeSettings();
+});
+
+document.getElementById('customize-btn').addEventListener('click', () => {
+    openCustomize();
+});
+
+document.getElementById('maps-btn').addEventListener('click', () => {
+    openMaps();
+});
+
+document.getElementById('reset-progress-btn').addEventListener('click', () => {
+    resetPlayProgress();
+});
+
+document.getElementById('back-maps-btn').addEventListener('click', () => {
+    closeMaps();
+});
+
+document.getElementById('map-level-1-btn').addEventListener('click', () => {
+    startAtLevel(1);
+});
+
+document.getElementById('map-level-2-btn').addEventListener('click', () => {
+    if (unlockedLevel >= 2) startAtLevel(2);
+});
+
+document.getElementById('map-level-3-btn').addEventListener('click', () => {
+    if (unlockedLevel >= 3) startAtLevel(3);
+});
+
+document.getElementById('back-customize-btn').addEventListener('click', () => {
+    closeCustomize();
+});
+
+document.getElementById('nickname-input').addEventListener('input', (event) => {
+    playerNickname = event.target.value.trimStart().slice(0, 12);
+    event.target.value = playerNickname;
+    savePlayerLook();
+    applyPlayerLook();
+});
+
 document.addEventListener('touchstart', handleTouch, { passive: false });
 document.addEventListener('touchend', handleTouch, { passive: false });
 document.addEventListener('touchcancel', handleTouch, { passive: false });
 
 function handleTouch(event) {
     if (!gameActive && !isPaused) return;
-    
+    if (event.target.closest('.menu-screen')) return;
+
     event.preventDefault();
     
     // Handle menu buttons
@@ -301,9 +397,15 @@ function handleTouch(event) {
     }
     if (isPaused) return;
     
-    if (event.target.closest('button')) return;
+    if (event.target.closest('button') || event.target.closest('input')) return;
     if (event.type === 'touchstart') {
-        tryJump();
+        if (flyOn && hearts > 1) {
+            flyTouchHeld = true;
+        } else if (!flyOn) {
+            tryJump();
+        }
+    } else if (event.type === 'touchend' || event.type === 'touchcancel') {
+        flyTouchHeld = event.touches && event.touches.length > 0;
     }
 }
 
@@ -320,7 +422,7 @@ buttons.forEach(button => {
 });
 
 function hideAllScreens() {
-    const screens = ['main-menu', 'instructions-screen', 'game-over-screen', 'you-win-screen', 'pause-screen'];
+    const screens = ['main-menu', 'instructions-screen', 'game-over-screen', 'you-win-screen', 'pause-screen', 'settings-screen', 'customize-screen', 'maps-screen'];
     screens.forEach(screenId => {
         document.getElementById(screenId).style.display = 'none';
     });
@@ -329,6 +431,195 @@ function hideAllScreens() {
 function showScreen(screenId) {
     currentScreen = screenId;
     document.getElementById(screenId).style.display = 'block';
+}
+
+function updateSettingsButtons() {
+    const soundBtn = document.getElementById('sound-toggle-btn');
+    const hitboxBtn = document.getElementById('hitbox-toggle-btn');
+    const flyBtn = document.getElementById('fly-toggle-btn');
+    if (soundBtn) soundBtn.textContent = soundOn ? 'Sound: On' : 'Sound: Off';
+    if (hitboxBtn) hitboxBtn.textContent = showHitboxes ? 'Hitboxes: On' : 'Hitboxes: Off';
+    if (flyBtn) flyBtn.textContent = flyOn ? 'Flying: On' : 'Flying: Off';
+}
+
+function isSettingsMenu(screenId) {
+    return screenId === 'settings-screen' || screenId === 'maps-screen' || screenId === 'customize-screen';
+}
+
+function openSettings() {
+    if (!isSettingsMenu(currentScreen)) {
+        settingsReturnScreen = currentScreen || 'main-menu';
+    } else if (isSettingsMenu(settingsReturnScreen)) {
+        settingsReturnScreen = 'main-menu';
+    }
+    if (gameActive && !isPaused) {
+        settingsPausedGame = true;
+        isPaused = true;
+        stopMotion();
+        heldKeys.clear();
+        flyTouchHeld = false;
+        mAndM.classList.remove('flying');
+    } else {
+        settingsPausedGame = false;
+    }
+    hideAllScreens();
+    updateSettingsButtons();
+    showScreen('settings-screen');
+}
+
+function loadPlayerLook() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(PLAYER_LOOK_KEY) || '{}');
+        if (PLAYER_COLORS.includes(saved.color)) playerColor = saved.color;
+        playerNickname = String(saved.nickname || '').slice(0, 12);
+    } catch (error) {
+        playerColor = '#FF0000';
+        playerNickname = '';
+    }
+    applyPlayerLook();
+}
+
+function savePlayerLook() {
+    localStorage.setItem(PLAYER_LOOK_KEY, JSON.stringify({
+        color: playerColor,
+        nickname: playerNickname
+    }));
+}
+
+function applyPlayerLook() {
+    const container = document.getElementById('game-container');
+    if (container) container.style.setProperty('--player-color', playerColor);
+    mAndM.style.setProperty('--player-color', playerColor);
+    const preview = document.getElementById('customize-preview');
+    if (preview) preview.style.backgroundColor = playerColor;
+    document.querySelectorAll('#color-choices .color-choice').forEach((dot) => {
+        dot.classList.toggle('selected', dot.dataset.color === playerColor);
+    });
+    const nameInput = document.getElementById('nickname-input');
+    if (nameInput && document.activeElement !== nameInput) {
+        nameInput.value = playerNickname;
+    }
+    updatePlayerNameTag();
+}
+
+function buildColorChoices() {
+    const row = document.getElementById('color-choices');
+    if (!row || row.childElementCount) return;
+    PLAYER_COLORS.forEach((color) => {
+        const dot = document.createElement('button');
+        dot.type = 'button';
+        dot.className = 'color-choice';
+        dot.dataset.color = color;
+        dot.style.backgroundColor = color;
+        dot.addEventListener('click', () => {
+            playerColor = color;
+            savePlayerLook();
+            applyPlayerLook();
+        });
+        row.appendChild(dot);
+    });
+}
+
+function updatePlayerNameTag() {
+    const tag = document.getElementById('player-name');
+    if (!tag) return;
+    if (!playerNickname) {
+        tag.style.display = 'none';
+        return;
+    }
+    tag.textContent = playerNickname;
+    tag.style.display = 'block';
+    tag.style.left = `${getPlayerScreenX() + PLAYER_SIZE / 2}px`;
+    tag.style.bottom = `${(parseInt(mAndM.style.bottom, 10) || 20) + PLAYER_SIZE + 6}px`;
+}
+
+function openCustomize() {
+    hideAllScreens();
+    buildColorChoices();
+    applyPlayerLook();
+    showScreen('customize-screen');
+}
+
+function closeCustomize() {
+    hideAllScreens();
+    updateSettingsButtons();
+    showScreen('settings-screen');
+}
+
+function loadUnlockedLevels() {
+    const saved = Number(localStorage.getItem(UNLOCKED_LEVEL_KEY));
+    unlockedLevel = Number.isFinite(saved) ? Math.min(MAX_LEVEL, Math.max(1, saved)) : 1;
+    updateMapsLock();
+}
+
+function saveUnlockedLevels() {
+    localStorage.setItem(UNLOCKED_LEVEL_KEY, String(unlockedLevel));
+}
+
+function resetPlayProgress() {
+    unlockedLevel = 1;
+    saveUnlockedLevels();
+    checkpointLevel = 1;
+    checkpointScore = 0;
+    score = 0;
+    hearts = MAX_HEARTS;
+    playerIsSplit = false;
+    playerIsQuarter = false;
+    gameActive = false;
+    isPaused = false;
+    settingsPausedGame = false;
+    updateMapsLock();
+    updateHearts();
+    hideAllScreens();
+    showScreen('main-menu');
+}
+
+function unlockLevel(levelNumber) {
+    const level = Math.min(MAX_LEVEL, Math.max(1, levelNumber));
+    if (level > unlockedLevel) {
+        unlockedLevel = level;
+        saveUnlockedLevels();
+    }
+    updateMapsLock();
+}
+
+function updateMapsLock() {
+    [
+        ['map-level-1-btn', 1],
+        ['map-level-2-btn', 2],
+        ['map-level-3-btn', 3]
+    ].forEach(([id, level]) => {
+        const card = document.getElementById(id);
+        if (!card) return;
+        const locked = level > unlockedLevel;
+        card.classList.toggle('locked', locked);
+        card.disabled = locked;
+    });
+}
+
+function openMaps() {
+    hideAllScreens();
+    updateMapsLock();
+    showScreen('maps-screen');
+}
+
+function closeMaps() {
+    hideAllScreens();
+    updateSettingsButtons();
+    showScreen('settings-screen');
+}
+
+function closeSettings() {
+    hideAllScreens();
+    if (settingsPausedGame) {
+        settingsPausedGame = false;
+        resumeGame();
+        return;
+    }
+    const backTo = settingsReturnScreen && !isSettingsMenu(settingsReturnScreen)
+        ? settingsReturnScreen
+        : 'main-menu';
+    showScreen(backTo);
 }
 
 function pauseGame() {
@@ -354,6 +645,7 @@ function resumeGame() {
 function tryJump() {
     if (!gameActive || isPaused) return;
     if (isJumping) {
+        if (hearts <= 2) return;
         doubleJump();
         return;
     }
@@ -371,7 +663,7 @@ function jump() {
     if (window.innerWidth <= 768) {
         function jumpStep() {
             if (thisMotion !== motionId) return;
-            if (position >= 60) {
+            if (position >= 170) {
                 fall();
                 return;
             }
@@ -386,7 +678,7 @@ function jump() {
                 clearInterval(window.jumpInterval);
                 return;
             }
-            if (position >= 60) {
+            if (position >= 170) {
                 clearInterval(window.jumpInterval);
                 window.jumpInterval = null;
                 fall();
@@ -399,6 +691,7 @@ function jump() {
 }
 
 function doubleJump() {
+    if (hearts <= 2) return;
     if (!canDoubleJump || doubleJumpsRemaining <= 0) return;
 
     canDoubleJump = false;
@@ -494,15 +787,20 @@ function updateWorldPositions() {
     });
     const finishLine = document.getElementById('finish-line');
     finishLine.style.left = `${MAP_LENGTH - distanceTraveled}px`;
-    finishLine.textContent = currentLevel < MAX_LEVEL ? 'LEVEL 2' : 'FINISH';
+    finishLine.textContent = currentLevel < MAX_LEVEL ? `LEVEL ${currentLevel + 1}` : 'FINISH';
     const checkpointFlag = document.getElementById('checkpoint-flag');
     if (checkpointFlag) {
         checkpointFlag.style.left = `${MAP_LENGTH - 70 - distanceTraveled}px`;
-        checkpointFlag.style.display = currentLevel === 1 ? 'flex' : 'none';
+        checkpointFlag.style.display = currentLevel < MAX_LEVEL ? 'flex' : 'none';
     }
     const giant = document.getElementById('giant-skittle');
     giant.style.left = `${giantWorldX - distanceTraveled}px`;
-    giant.style.transform = `rotate(${(giantWorldX / (GIANT_SIZE * Math.PI)) * 360}deg)`;
+    if (!smashPlaying) {
+        giant.style.transform = `rotate(${(giantWorldX / (GIANT_SIZE * Math.PI)) * 360}deg)`;
+    }
+    document.querySelectorAll('.left-behind-half, .left-behind-quarter').forEach((piece) => {
+        piece.style.left = `${Number(piece.dataset.worldX) - distanceTraveled}px`;
+    });
     updateBirds();
 }
 
@@ -581,6 +879,7 @@ function isMoveCooling(until) {
 }
 
 function registerMovePress(code) {
+    if (hearts <= 1) return;
     if (isLeftKey(code)) {
         if (isMoveCooling(backCooldownUntil)) return;
         backPresses += 1;
@@ -603,16 +902,19 @@ function registerMovePress(code) {
 }
 
 function isHoldingLeft() {
+    if (hearts <= 1) return false;
     if (isMoveCooling(backCooldownUntil)) return false;
     return [...heldKeys].some(isLeftKey);
 }
 
 function isHoldingRight() {
+    if (hearts <= 1) return false;
     if (isMoveCooling(forwardCooldownUntil)) return false;
     return [...heldKeys].some(isRightKey);
 }
 
 function isHoldingJump() {
+    if (!flyOn || hearts <= 1) return false;
     if (flyTouchHeld) return true;
     return [...heldKeys].some((code) => code === 'Space' || code === 'KeyW' || code === 'ArrowUp');
 }
@@ -665,39 +967,80 @@ function spawnKillerPlane() {
     killerPlane = {
         el,
         x: -PLANE_WIDTH - 24,
-        y: Math.max(8, player.y - PLANE_HEIGHT / 2)
+        y: Math.max(8, player.y - PLANE_HEIGHT / 2),
+        angle: 0,
+        spent: false,
+        vx: PLANE_SPEED,
+        vy: 0
     };
-    el.style.left = `${killerPlane.x}px`;
-    el.style.top = `${killerPlane.y}px`;
+    drawPlane();
+}
+
+function planeNose() {
+    return {
+        x: killerPlane.x + PLANE_WIDTH - 18,
+        y: killerPlane.y + PLANE_HEIGHT / 2
+    };
+}
+
+function drawPlane() {
+    killerPlane.el.style.left = `${killerPlane.x}px`;
+    killerPlane.el.style.top = `${killerPlane.y}px`;
+    killerPlane.el.style.transform = `rotate(${killerPlane.angle}deg)`;
+}
+
+function sendPlaneOffScreen(angleRad) {
+    killerPlane.spent = true;
+    killerPlane.vx = Math.cos(angleRad) * PLANE_SPEED;
+    killerPlane.vy = Math.sin(angleRad) * PLANE_SPEED;
+    killerPlane.angle = angleRad * 180 / Math.PI;
 }
 
 function updateKillerPlane() {
-    if (!killerPlane || !gameActive) return;
+    if (!killerPlane) return;
+
+    if (killerPlane.spent) {
+        killerPlane.x += killerPlane.vx;
+        killerPlane.y += killerPlane.vy;
+        drawPlane();
+        const box = document.getElementById('game-container');
+        if (!box || killerPlane.x > box.clientWidth + 160 || killerPlane.x < -200 ||
+            killerPlane.y < -120 || killerPlane.y > box.clientHeight + 120) {
+            clearKillerPlane();
+        }
+        return;
+    }
+
+    if (!gameActive) return;
     const target = getCandyCircle(mAndM);
-    const cx = killerPlane.x + PLANE_WIDTH / 2;
-    const cy = killerPlane.y + PLANE_HEIGHT / 2;
-    const dx = target.x - cx;
-    const dy = target.y - cy;
+    const nose = planeNose();
+    const dx = target.x - nose.x;
+    const dy = target.y - nose.y;
     const dist = Math.hypot(dx, dy) || 1;
+    const angleRad = Math.atan2(dy, dx);
     killerPlane.x += (dx / dist) * PLANE_SPEED;
     killerPlane.y += (dy / dist) * PLANE_SPEED;
-    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-    killerPlane.el.style.left = `${killerPlane.x}px`;
-    killerPlane.el.style.top = `${killerPlane.y}px`;
-    killerPlane.el.style.transform = `rotate(${angle}deg)`;
+    killerPlane.angle = angleRad * 180 / Math.PI;
+    drawPlane();
 
-    if (checkCircleCollision(mAndM, killerPlane.el)) {
+    const hitRange = target.r + 16;
+    if (dx * dx + dy * dy < hitRange * hitRange) {
         const containerRect = document.getElementById('game-container').getBoundingClientRect();
         window.collisionPoint = {
             x: containerRect.left + target.x,
             y: containerRect.top + target.y
         };
+        sendPlaneOffScreen(angleRad);
         consecutiveJumps = 0;
         gameOver(killerPlane.el);
     }
 }
 
 function updatePlayerFly() {
+    if (!flyOn) {
+        mAndM.classList.remove('flying');
+        return;
+    }
     let position = parseInt(mAndM.style.bottom, 10);
     if (Number.isNaN(position)) position = GROUND_BOTTOM;
 
@@ -727,8 +1070,8 @@ function movePlayer() {
     if (walk === 0) return;
 
     const gameContainer = document.getElementById('game-container');
-    const minX = 20;
-    const maxX = Math.max(minX, getBarrierLeft() - PLAYER_SIZE);
+    const minX = getGiantScreenLeft() - PLAYER_SIZE - 8;
+    const maxX = Math.max(20, getBarrierLeft() - PLAYER_SIZE);
     let newX = getPlayerScreenX() + walk;
 
     if (newX < minX) {
@@ -743,6 +1086,18 @@ function movePlayer() {
     }
 
     mAndM.style.left = `${newX}px`;
+}
+
+function getGiantScreenLeft() {
+    return giantWorldX - distanceTraveled;
+}
+
+function playerIsBehindGiant() {
+    return getPlayerScreenX() + PLAYER_SIZE <= getGiantScreenLeft() + 28;
+}
+
+function wentBehindGiant(el) {
+    return Boolean(el && el.id === 'behind-giant');
 }
 
 function getBarrierLeft() {
@@ -780,11 +1135,19 @@ function registerBarrierHit() {
 }
 
 function moveBackgroundAndObstacles() {
-    if (!gameActive || isPaused) return;
+    if (isPaused) return;
+    if (!gameActive) {
+        updateKillerPlane();
+        if (killerPlane && killerPlane.spent) {
+            window.gameLoop = requestAnimationFrame(moveBackgroundAndObstacles);
+        }
+        return;
+    }
 
     distanceTraveled += obstacleSpeed;
     giantWorldX = distanceTraveled + GIANT_START_X;
     movePlayer();
+    updatePlayerFly();
     if (gameActive && playerHitCeiling()) {
         spawnKillerPlane();
     }
@@ -792,8 +1155,14 @@ function moveBackgroundAndObstacles() {
     document.getElementById('game-container').style.backgroundPosition = `${backgroundPosition}px 0`;
     updateWorldPositions();
     updatePlayerRoll();
+    updatePlayerNameTag();
     updateKillerPlane();
-    if (!gameActive) return;
+    if (!gameActive) {
+        if (killerPlane && killerPlane.spent) {
+            window.gameLoop = requestAnimationFrame(moveBackgroundAndObstacles);
+        }
+        return;
+    }
     drawHitboxes();
     updateScore();
 
@@ -828,31 +1197,47 @@ function moveBackgroundAndObstacles() {
     });
 
     const giant = document.getElementById('giant-skittle');
-    if (gameActive && checkCircleCollision(mAndM, giant)) {
+    if (gameActive && !smashPlaying && playerIsBehindGiant()) {
+        consecutiveJumps = 0;
+        gameOver({ id: 'behind-giant' });
+        if (!gameActive) return;
+    }
+    if (gameActive && !smashPlaying && checkCircleCollision(mAndM, giant)) {
         consecutiveJumps = 0;
         playSkittleHitSound(giant);
         gameOver(giant);
-        return;
+        if (!gameActive) return;
     }
     for (const bird of birds) {
         if (bird.el.classList.contains('being-eaten-by-giant')) continue;
-        if (gameActive && checkCircleCollision(mAndM, bird.el)) {
+        if (gameActive && Date.now() >= hurtUntil && checkCircleCollision(mAndM, bird.el)) {
             consecutiveJumps = 0;
             gameOver(bird.el);
-            return;
+            if (gameActive) {
+                bounceBirdAway(bird);
+                shovePlayerAwayFrom(bird.el);
+            } else {
+                return;
+            }
+            break;
         }
     }
     keepGiantCloseForThrows();
     updateThrownSkittles();
-    maybeThrowHungrySkittle();
+    if (currentLevel === 2 && currentChunk() >= HUNGRY_STOP_CHUNK) {
+        stopHungrySkittles();
+    } else {
+        maybeThrowHungrySkittle();
+    }
     giantEatsPrey();
     for (const thrown of thrownSkittles) {
         if (thrown.el.classList.contains('being-eaten-by-giant') || thrown.busy) continue;
-        if (gameActive && checkCircleCollision(mAndM, thrown.el)) {
+        if (gameActive && Date.now() >= hurtUntil && checkCircleCollision(mAndM, thrown.el)) {
             consecutiveJumps = 0;
             playSkittleHitSound(thrown.el);
             gameOver(thrown.el);
-            return;
+            if (!gameActive) return;
+            break;
         }
     }
 
@@ -885,6 +1270,7 @@ function drawHitboxes() {
     canvas.height = container.clientHeight;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!showHitboxes) return;
     ctx.lineWidth = 2;
 
     function drawCircle(el, color) {
@@ -905,7 +1291,11 @@ function drawHitboxes() {
     birds.forEach(bird => drawCircle(bird.el, '#00C8FF'));
     thrownSkittles.forEach(thrown => drawCircle(thrown.el, '#FF8A00'));
     if (killerPlane) {
-        drawCircle(killerPlane.el, '#FFFFFF');
+        const nose = planeNose();
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(nose.x, nose.y, 16, 0, Math.PI * 2);
+        ctx.stroke();
     }
 
     drawCircle(mAndM, '#00FF66');
@@ -975,13 +1365,27 @@ function checkAndUpdateHighScore() {
 }
 
 function startGame() {
+    startAtLevel(1);
+}
+
+function startAtLevel(levelNumber) {
+    const level = Math.min(MAX_LEVEL, Math.max(1, levelNumber));
+    if (level > unlockedLevel) return;
+    unlockLevel(level);
     unlockGameSounds();
     hideAllScreens();
-    currentLevel = 1;
-    checkpointLevel = 1;
-    checkpointScore = 0;
-    score = 0;
-    setupLevel(true);
+    const continueRun = gameActive && hearts > 0;
+    currentLevel = level;
+    checkpointLevel = currentLevel;
+    if (!continueRun) {
+        checkpointScore = 0;
+        score = 0;
+    }
+    settingsPausedGame = false;
+    setupLevel(!continueRun);
+    const player = getCandyCircle(mAndM);
+    teleportPop(player.x, player.y);
+    showLevelBanner(`LEVEL ${currentLevel}`);
     fetchHighScores();
     if (window.gameLoop) {
         cancelAnimationFrame(window.gameLoop);
@@ -989,12 +1393,26 @@ function startGame() {
     moveBackgroundAndObstacles();
 }
 
+function teleportToLevelEnd() {
+    const lead = 280;
+    distanceTraveled = Math.max(0, MAP_LENGTH - getPlayerScreenX() - lead);
+    backgroundPosition = -(distanceTraveled % 1200);
+    const gameContainer = document.getElementById('game-container');
+    if (gameContainer) {
+        gameContainer.style.backgroundPosition = `${backgroundPosition}px 0`;
+    }
+    giantWorldX = distanceTraveled + GIANT_START_X;
+    updateWorldPositions();
+    updatePlayerNameTag();
+}
+
 function startNextLevel() {
     currentLevel += 1;
+    unlockLevel(currentLevel);
     checkpointLevel = currentLevel;
     checkpointScore = score;
     setupLevel(false);
-    showLevelBanner('CHECKPOINT · LEVEL 2');
+    showLevelBanner(`CHECKPOINT · LEVEL ${currentLevel}`);
     if (window.gameLoop) {
         cancelAnimationFrame(window.gameLoop);
     }
@@ -1033,9 +1451,21 @@ function setupLevel(isNewGame) {
     gameActive = true;
     isPaused = false;
     const baseSpeed = window.innerWidth <= 768 ? 3 : INITIAL_SPEED;
-    obstacleSpeed = currentLevel >= 2 ? baseSpeed + 1.5 : baseSpeed;
+    if (currentLevel >= 3) {
+        obstacleSpeed = baseSpeed + 2.5;
+    } else if (currentLevel >= 2) {
+        obstacleSpeed = baseSpeed + 1.5;
+    } else {
+        obstacleSpeed = baseSpeed;
+    }
     distanceTraveled = 0;
     backgroundPosition = 0;
+    const gameContainer = document.getElementById('game-container');
+    if (gameContainer) {
+        gameContainer.classList.toggle('dungeon', currentLevel === 2);
+        gameContainer.classList.toggle('night', currentLevel >= 3);
+        gameContainer.style.backgroundPosition = '0 0';
+    }
     stopMotion();
     isJumping = false;
     if (isNewGame) {
@@ -1043,6 +1473,15 @@ function setupLevel(isNewGame) {
         canDoubleJump = false;
         updateDoubleJumpCounter();
         consecutiveJumps = 0;
+        hearts = MAX_HEARTS;
+        playerIsSplit = false;
+        playerIsQuarter = false;
+        hurtUntil = 0;
+        smashPlaying = false;
+        if (gameOverTimer) {
+            clearTimeout(gameOverTimer);
+            gameOverTimer = null;
+        }
         barrierHits = 0;
         barrierTouching = false;
         updateBarrierLook();
@@ -1057,6 +1496,8 @@ function setupLevel(isNewGame) {
     pendingBackCooldown = false;
     giantWorldX = GIANT_START_X;
     noSkittleUntil = Date.now() + SKITTLE_SPAWN_DELAY_MS;
+    hungryStopped = false;
+    hideHungryByeMessage();
     clearThrownSkittles();
     clearKillerPlane();
     createBirds();
@@ -1064,10 +1505,17 @@ function setupLevel(isNewGame) {
     const mAndM = document.getElementById('m-and-m');
     mAndM.style.bottom = '20px';
     mAndM.style.transform = 'rotate(0deg)';
-    mAndM.classList.remove('being-eaten', 'being-smashed', 'under-giant', 'trying-to-escape', 'teleporting', 'destroyed', 'impact', 'flying');
-    document.querySelectorAll('.player-bit, #eat-bits-layer, .teleport-pop').forEach(el => el.remove());
+    mAndM.classList.remove('being-eaten', 'being-smashed', 'under-giant', 'trying-to-escape', 'teleporting', 'destroyed', 'impact', 'flying', 'split');
+    if (!playerIsSplit) {
+        mAndM.classList.remove('one-half');
+    }
+    if (!playerIsQuarter) {
+        mAndM.classList.remove('one-quarter');
+    }
+    document.querySelectorAll('.player-bit, #eat-bits-layer, .teleport-pop, .left-behind-half, .left-behind-quarter').forEach(el => el.remove());
     mAndM.style.removeProperty('--eat-x');
     mAndM.style.removeProperty('--eat-y');
+    updateHearts();
     const giant = document.getElementById('giant-skittle');
     if (giant) {
         giant.classList.remove('eating', 'smashing', 'smashing-down', 'jumping-up', 'trapping');
@@ -1077,6 +1525,7 @@ function setupLevel(isNewGame) {
 
     updateScore();
     adjustGameLayout();
+    applyPlayerLook();
     placePlayerOnScreen();
     initializeObstacles();
 }
@@ -1088,6 +1537,7 @@ function placePlayerOnScreen() {
     const maxX = Math.max(20, width - PLAYER_SIZE - BARRIER_WIDTH - 20);
     mAndM.style.left = `${Math.min(preferred, maxX)}px`;
     mAndM.style.bottom = '20px';
+    updatePlayerNameTag();
 }
 
 const SKITTLE_COLORS = ['#ED1C24', '#F26522', '#FFF200', '#8DC63F', '#662D91'];
@@ -1108,14 +1558,42 @@ function clearThrownSkittles() {
     document.querySelectorAll('.hungry-skittle').forEach(el => el.remove());
 }
 
+function stopHungrySkittles() {
+    if (hungryStopped) return;
+    hungryStopped = true;
+    clearThrownSkittles();
+    showHungryByeMessage();
+}
+
+function showHungryByeMessage() {
+    const el = document.getElementById('hungry-bye');
+    if (!el) return;
+    el.textContent = 'i will come back...';
+    el.classList.add('show');
+}
+
+function hideHungryByeMessage() {
+    const el = document.getElementById('hungry-bye');
+    if (el) {
+        el.classList.remove('show');
+    }
+}
+
 function maybeThrowHungrySkittle() {
+    if (hungryStopped) return;
+    if (currentLevel === 2 && currentChunk() >= HUNGRY_STOP_CHUNK) return;
     if (Date.now() < noSkittleUntil) return;
     if (currentChunk() < (currentLevel >= 2 ? 2 : THROW_START_CHUNK)) return;
     if (thrownSkittles.length >= 6) return;
     throwCooldown -= 1;
     if (throwCooldown > 0) return;
+    const someoneNearLeft = thrownSkittles.some((thrown) => {
+        const screenX = thrown.worldX - distanceTraveled;
+        return screenX < 140;
+    });
+    if (someoneNearLeft) return;
     throwHungrySkittle();
-    throwCooldown = currentLevel >= 2 ? 50 : THROW_EVERY_FRAMES;
+    throwCooldown = currentLevel >= 3 ? 50 : currentLevel >= 2 ? 70 : THROW_EVERY_FRAMES;
 }
 
 function keepGiantCloseForThrows() {
@@ -1123,9 +1601,8 @@ function keepGiantCloseForThrows() {
 }
 
 function throwHungrySkittle() {
-    const giant = document.getElementById('giant-skittle');
     const container = document.getElementById('game-container');
-    if (!giant || !container) return;
+    if (!container) return;
 
     const el = document.createElement('div');
     el.className = 'obstacle skittle hungry-skittle';
@@ -1133,21 +1610,19 @@ function throwHungrySkittle() {
     el.innerHTML = skittleFaceHtml();
     container.appendChild(el);
 
-    const giantScreenX = giantWorldX - distanceTraveled;
-    const startScreenX = Math.max(giantScreenX + GIANT_SIZE * 0.55, -20);
-    const playerBottom = parseInt(mAndM.style.bottom, 10) || 20;
-    const startBottom = 20 + GIANT_SIZE * 0.42;
-    const aimBottom = playerBottom + 10 + Math.random() * 70;
-    const throwVx = Math.max(THROWN_SPEED, obstacleSpeed + 5);
-    const travelFrames = 36;
-    const throwVy = (aimBottom - startBottom) / travelFrames + 3.4;
+    const startScreenX = -THROWN_SKITTLE_SIZE - 16;
+    const maxBottom = Math.max(60, container.clientHeight - THROWN_SKITTLE_SIZE - 16);
+    const lanes = [20, 90, 160, 230, 300, 370].filter((lane) => lane <= maxBottom);
+    const usedLanes = thrownSkittles.map((thrown) => thrown.bottom);
+    const freeLanes = lanes.filter((lane) => usedLanes.every((used) => Math.abs(used - lane) > 50));
+    const startBottom = (freeLanes.length ? freeLanes : lanes)[Math.floor(Math.random() * (freeLanes.length || lanes.length))];
 
     thrownSkittles.push({
         el,
         worldX: startScreenX + distanceTraveled,
         bottom: startBottom,
-        vx: throwVx,
-        vy: throwVy,
+        vx: 0,
+        vy: 0,
         busy: false
     });
 }
@@ -1354,16 +1829,33 @@ function destroyPlayer(atX, atY) {
     requestAnimationFrame(frame);
 }
 
-function eatPlayer(skittle) {
+function eatPlayer(skittle, afterEat) {
     const playerCircle = getCandyCircle(mAndM);
     const mouthCircle = getCandyCircle(skittle);
     mAndM.style.setProperty('--eat-x', `${mouthCircle.x - playerCircle.x}px`);
     mAndM.style.setProperty('--eat-y', `${mouthCircle.y - playerCircle.y}px`);
-    skittle.classList.add('eating');
+    if (skittle && skittle.classList) {
+        skittle.classList.add('eating');
+    }
     mAndM.classList.add('being-eaten');
     setTimeout(() => {
         destroyPlayer(mouthCircle.x, mouthCircle.y);
+        if (skittle && skittle.classList) {
+            skittle.classList.remove('eating');
+        }
+        if (afterEat) {
+            afterEat();
+        }
     }, 280);
+}
+
+function restorePlayerAfterEat() {
+    mAndM.classList.remove('being-eaten', 'destroyed', 'impact');
+    mAndM.style.removeProperty('--eat-x');
+    mAndM.style.removeProperty('--eat-y');
+    mAndM.style.transform = 'rotate(0deg)';
+    document.querySelectorAll('.player-bit, #eat-bits-layer').forEach((el) => el.remove());
+    placePlayerOnScreen();
 }
 
 function teleportPop(x, y) {
@@ -1376,7 +1868,10 @@ function teleportPop(x, y) {
 }
 
 function smashPlayer(giant) {
-    giant.style.transform = 'rotate(0deg)';
+    if (smashPlaying) return;
+    smashPlaying = true;
+    giant.classList.remove('eating', 'smashing', 'smashing-down');
+    giant.style.removeProperty('transform');
     giant.classList.add('trapping', 'jumping-up');
     const from = getCandyCircle(mAndM);
     const underX = getCandyCircle(giant).x - PLAYER_SIZE / 2;
@@ -1418,9 +1913,9 @@ function initializeObstacles() {
     const delayDistance = startSpeed * (SKITTLE_SPAWN_DELAY_MS / 16);
     const startX = PLAYER_SPAWN_X + Math.max(safeRange, delayDistance);
     const endX = CHUNK_SIZE * MAP_CHUNKS;
-    const skittleCount = currentLevel >= 2 ? 120 : 90;
-    const minGap = currentLevel >= 2 ? PLAYER_SIZE * 4 : safeRange;
-    const maxGap = minGap + (currentLevel >= 2 ? 120 : 200);
+    const skittleCount = currentLevel >= 3 ? 150 : currentLevel >= 2 ? 120 : 90;
+    const minGap = currentLevel >= 3 ? PLAYER_SIZE * 3.2 : currentLevel >= 2 ? PLAYER_SIZE * 4 : safeRange;
+    const maxGap = minGap + (currentLevel >= 3 ? 90 : currentLevel >= 2 ? 120 : 200);
     let worldX = startX + Math.random() * 80;
     let skittleNumber = 0;
 
@@ -1450,7 +1945,7 @@ function youWin() {
     document.getElementById('win-score').textContent = score;
     const winBlurb = document.getElementById('win-blurb');
     if (winBlurb) {
-        winBlurb.textContent = 'You finished Level 2!';
+        winBlurb.textContent = 'You finished Level 3!';
     }
     checkAndUpdateHighScore();
     updateScore();
@@ -1469,7 +1964,119 @@ function createExplosion(x, y) {
     }, 500);
 }
 
+function updateHearts() {
+    const icons = document.querySelectorAll('#hearts-bar .heart');
+    icons.forEach((heart, index) => {
+        heart.classList.toggle('lost', index >= hearts);
+    });
+    mAndM.classList.remove('split');
+    mAndM.classList.toggle('one-half', playerIsSplit && !playerIsQuarter);
+    mAndM.classList.toggle('one-quarter', playerIsQuarter);
+    if (playerIsSplit || playerIsQuarter || hearts <= 2) {
+        canDoubleJump = false;
+        doubleJumpsRemaining = 0;
+        updateDoubleJumpCounter();
+    }
+}
+
+function dropPlayerPiece(className, offsetX) {
+    const leftover = document.createElement('div');
+    leftover.className = className;
+    leftover.dataset.worldX = String(getPlayerScreenX() + offsetX + distanceTraveled);
+    leftover.style.left = `${getPlayerScreenX() + offsetX}px`;
+    leftover.style.bottom = mAndM.style.bottom || '20px';
+    leftover.innerHTML = '<span class="half-letter">m</span>';
+    document.getElementById('game-container').appendChild(leftover);
+}
+
+function removeHungryIfNeeded(hitBy) {
+    if (hitBy && hitBy.classList && hitBy.classList.contains('hungry-skittle')) {
+        hitBy.remove();
+        thrownSkittles = thrownSkittles.filter((thrown) => thrown.el !== hitBy);
+    }
+}
+
+function leaveHalfBehind(hitBy) {
+    playerIsSplit = true;
+    mAndM.classList.remove('one-quarter');
+    mAndM.classList.add('one-half');
+    dropPlayerPiece('left-behind-half', 0);
+    removeHungryIfNeeded(hitBy);
+}
+
+function leaveQuarterBehind(hitBy) {
+    playerIsQuarter = true;
+    mAndM.classList.remove('one-half');
+    mAndM.classList.add('one-quarter');
+    dropPlayerPiece('left-behind-quarter', 20);
+    removeHungryIfNeeded(hitBy);
+}
+
+function shovePlayerAwayFrom(el) {
+    if (!el) return;
+    const circle = getCandyCircle(el);
+    const safeX = Math.min(getBarrierLeft() - PLAYER_SIZE, circle.x + circle.r + 16);
+    mAndM.style.left = `${Math.max(20, safeX)}px`;
+    mAndM.style.bottom = '20px';
+}
+
+function bounceBirdAway(bird) {
+    const container = document.getElementById('game-container');
+    bird.pathWorldX = distanceTraveled + (container ? container.clientWidth : 800) + 220;
+    bird.patrolOffset = 0;
+    bird.patrolDir = 1;
+    bird.el.style.left = `${bird.pathWorldX - distanceTraveled}px`;
+}
+
+function collisionSpot() {
+    const container = document.getElementById('game-container');
+    const containerRect = container.getBoundingClientRect();
+    if (window.collisionPoint) {
+        return {
+            x: window.collisionPoint.x - containerRect.left,
+            y: window.collisionPoint.y - containerRect.top
+        };
+    }
+    const player = getCandyCircle(mAndM);
+    return { x: player.x, y: player.y };
+}
+
+function loseHeart(collidedObstacle) {
+    const stillWhole = !playerIsSplit;
+    hearts = Math.max(0, hearts - 1);
+    updateHearts();
+    hurtUntil = Date.now() + 1800;
+    if (stillWhole) {
+        leaveHalfBehind(collidedObstacle);
+    } else if (!playerIsQuarter) {
+        leaveQuarterBehind(collidedObstacle);
+    } else {
+        mAndM.classList.add('impact');
+        setTimeout(() => mAndM.classList.remove('impact'), 350);
+        removeHungryIfNeeded(collidedObstacle);
+    }
+    if (isGiantSkittle(collidedObstacle)) {
+        shovePlayerAwayFrom(collidedObstacle);
+    }
+    if (collidedObstacle && collidedObstacle.classList && collidedObstacle.classList.contains('chase-bird')) {
+        const bird = birds.find((item) => item.el === collidedObstacle);
+        if (bird) bounceBirdAway(bird);
+        shovePlayerAwayFrom(collidedObstacle);
+    }
+}
+
 function gameOver(collidedObstacle) {
+    const caughtByGiant = isGiantSkittle(collidedObstacle);
+    const sneakyBehind = wentBehindGiant(collidedObstacle);
+    if (!caughtByGiant && !sneakyBehind) {
+        if (Date.now() < hurtUntil) return;
+        if (hearts > 1) {
+            loseHeart(collidedObstacle);
+            return;
+        }
+    }
+    hearts = 0;
+    updateHearts();
     gameActive = false;
     isPaused = false;
     heldKeys.clear();
@@ -1491,16 +2098,16 @@ function gameOver(collidedObstacle) {
         endDelay = 900;
     } else {
         mAndM.classList.add('impact');
-        const containerRect = document.getElementById('game-container').getBoundingClientRect();
-        const relativeX = window.collisionPoint.x - containerRect.left;
-        const relativeY = window.collisionPoint.y - containerRect.top;
-        createExplosion(relativeX, relativeY);
+        const spot = collisionSpot();
+        createExplosion(spot.x, spot.y);
         document.getElementById('game-container').classList.add('game-over-flash');
     }
     
     const title = document.getElementById('game-over-title');
     if (title) {
-        if (collidedObstacle && collidedObstacle.classList && collidedObstacle.classList.contains('chase-bird')) {
+        if (sneakyBehind) {
+            title.textContent = "where do you think you're going?";
+        } else if (collidedObstacle && collidedObstacle.classList && collidedObstacle.classList.contains('chase-bird')) {
             title.textContent = 'you were pecked to death lol';
         } else if (collidedObstacle && (collidedObstacle.id === 'ceiling' || (collidedObstacle.classList && collidedObstacle.classList.contains('killer-plane')))) {
             title.textContent = 'i beleve i can fly.';
@@ -1519,10 +2126,11 @@ function gameOver(collidedObstacle) {
         playAgainBtn.textContent = checkpointLevel > 1 ? 'Checkpoint' : 'Play Again';
     }
     
-    setTimeout(() => {
+    if (gameOverTimer) clearTimeout(gameOverTimer);
+    gameOverTimer = setTimeout(() => {
+        gameOverTimer = null;
         mAndM.classList.remove('impact');
         document.getElementById('game-container').classList.remove('game-over-flash', 'smash-shake');
-        
         checkAndUpdateHighScore();
         updateScore();
         showScreen('game-over-screen');
@@ -1621,6 +2229,7 @@ window.addEventListener('orientationchange', () => setTimeout(adjustGameScale, 1
 window.addEventListener('load', adjustGameScale);
 
 initializeScores();
+updateHearts();
 
 // Update the instructions for mobile
 function updateInstructions() {
@@ -1628,16 +2237,16 @@ function updateInstructions() {
     if (window.innerWidth <= 768) {
         instructionsText.innerHTML = `
             <h2>How to Play</h2>
-            <p>Tap the screen to jump</p>
-            <p>Tap again while jumping to double jump</p>
+            <p>${flyOn ? 'Hold the screen to fly. Let go to fall' : 'Tap the screen to jump'}</p>
+            <p>Don't fly into the top of the screen. A plane will fly in and hit you</p>
             <p>Don't let a Skittle eat you</p>
             <p>If the giant Skittle catches you, it jumps up. You teleport under it and try to escape. Then it smashes you</p>
-            <p>At chunk 5, the giant Skittle throws hungry Skittles that chase you until they eat you, a bird, or another Skittle</p>
+            <p>Hungry Skittles come from the left, one at a time, and chase you until they eat you, a bird, or another Skittle</p>
             <p>Don't touch the birds</p>
             <p>The giant Skittle eats birds and other Skittles</p>
             <p>Score increases with each successful jump</p>
-            <p>Finish level 1 to start level 2. There's a checkpoint there</p>
-            <p>If you die in level 2, press Checkpoint to start there</p>
+            <p>Finish a level to start the next one. There's a checkpoint at the end of level 1 and level 2</p>
+            <p>If you die, press Checkpoint to start at your last checkpoint</p>
             <p>Don't bump the right wall more than 10 times</p>
             <p>Press P to pause</p>
             <p>Consecutive jumps give bonus points!</p>
@@ -1646,18 +2255,18 @@ function updateInstructions() {
     } else {
         instructionsText.innerHTML = `
             <h2>How to Play</h2>
-            <p>Press W, SPACE, or UP to jump</p>
-            <p>Press again while jumping to double jump</p>
+            <p>${flyOn ? 'Hold W, SPACE, or UP to fly. Let go to fall' : 'Press W, SPACE, or UP to jump'}</p>
+            <p>Don't fly into the top of the screen. A plane will fly in and hit you</p>
             <p>Press A or LEFT to go back, D or RIGHT to go forward</p>
             <p>After 3 left or 3 right presses, those keys rest for a bit</p>
             <p>Don't let a Skittle eat you</p>
             <p>If the giant Skittle catches you, it jumps up. You teleport under it and try to escape. Then it smashes you</p>
-            <p>At chunk 5, the giant Skittle throws hungry Skittles that chase you until they eat you, a bird, or another Skittle</p>
+            <p>Hungry Skittles come from the left, one at a time, and chase you until they eat you, a bird, or another Skittle</p>
             <p>Don't touch the birds</p>
             <p>The giant Skittle eats birds and other Skittles</p>
             <p>Score increases with each successful jump</p>
-            <p>Finish level 1 to start level 2. There's a checkpoint there</p>
-            <p>If you die in level 2, press Checkpoint to start there</p>
+            <p>Finish a level to start the next one. There's a checkpoint at the end of level 1 and level 2</p>
+            <p>If you die, press Checkpoint to start at your last checkpoint</p>
             <p>Don't bump the right wall more than 10 times</p>
             <p>Press P to pause</p>
             <p>Consecutive jumps give bonus points!</p>

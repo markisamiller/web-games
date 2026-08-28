@@ -4,17 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Great MScape</title>
-    <link rel="stylesheet" href="styles.css?v=92">
+    <link rel="stylesheet" href="styles.css?v=108">
 </head>
 <body>
     <div class="game-wrapper">
         <div id="score-bar">
             <span id="current-score-display">Score: 0</span>
             <button id="hud-restart-btn" class="hud-button">Restart</button>
-            <span id="high-score-display">High Score: 0</span>
+            <div class="score-bar-right">
+                <span id="high-score-display">High Score: 0</span>
+                <button id="settings-btn" class="hud-button">Settings</button>
+            </div>
         </div>
         <div id="game-container">
-            <div id="m-and-m" class="player">m</div>
+            <div id="hungry-bye">i will come back...</div>
+            <div id="player-name" class="player-name"></div>
+            <div id="m-and-m" class="player">
+                <span class="player-letter">m</span>
+                <span class="half left"><span class="half-letter">m</span></span>
+                <span class="half right"><span class="half-letter">m</span></span>
+            </div>
             <div id="ground"></div>
             <div id="giant-skittle">
                 <span class="skittle-letter">S</span>
@@ -34,6 +43,7 @@
             <!-- Main Menu Screen -->
             <div id="main-menu" class="menu-screen">
                 <h1>The Great MScape</h1>
+                <p class="by-line">by Liam</p>
                 <button id="start-game-btn" class="menu-button">Start Game</button>
                 <button id="instructions-btn" class="menu-button">Instructions</button>
             </div>
@@ -42,17 +52,17 @@
             <div id="instructions-screen" class="menu-screen" style="display: none;">
                 <h2>How to Play</h2>
                 <p>Press W, SPACE, or UP to jump</p>
-                <p>Press again while jumping to double jump</p>
+                <p>Don't fly into the top of the screen. A plane will fly in and hit you</p>
                 <p>Press A or LEFT to go back, D or RIGHT to go forward</p>
                 <p>After 3 left or 3 right presses, those keys rest for a bit</p>
                 <p>Don't let a Skittle eat you</p>
                 <p>If the giant Skittle catches you, it jumps up. You teleport under it and try to escape. Then it smashes you</p>
-                <p>At chunk 5, the giant Skittle throws hungry Skittles that chase you until they eat you, a bird, or another Skittle</p>
+                <p>Hungry Skittles come from the left, one at a time, and chase you until they eat you, a bird, or another Skittle</p>
                 <p>Don't touch the birds</p>
                 <p>The giant Skittle eats birds and other Skittles</p>
                 <p>Score increases with each successful jump</p>
-                <p>Finish level 1 to start level 2. There's a checkpoint there</p>
-                <p>If you die in level 2, press Checkpoint to start there</p>
+                <p>Finish a level to start the next one. There's a checkpoint at the end of level 1 and level 2</p>
+                <p>If you die, press Checkpoint to start at your last checkpoint</p>
                 <p>Don't bump the right wall more than 10 times</p>
                 <p>Press P to pause</p>
                 <p>Consecutive jumps give bonus points!</p>
@@ -75,19 +85,76 @@
                 <button id="pause-restart-button" class="menu-button">Restart</button>
             </div>
 
+            <!-- Settings Screen -->
+            <div id="settings-screen" class="menu-screen" style="display: none;">
+                <h2>Settings</h2>
+                <button id="sound-toggle-btn" class="menu-button">Sound: On</button>
+                <button id="hitbox-toggle-btn" class="menu-button">Hitboxes: On</button>
+                <button id="fly-toggle-btn" class="menu-button">Flying: Off</button>
+                <button id="customize-btn" class="menu-button">Customize</button>
+                <button id="maps-btn" class="menu-button">Maps</button>
+                <button id="reset-progress-btn" class="menu-button">Reset Progress</button>
+                <button id="close-settings-btn" class="menu-button">Close</button>
+            </div>
+
+            <!-- Customize Screen -->
+            <div id="customize-screen" class="menu-screen" style="display: none;">
+                <h2>Customize</h2>
+                <div id="customize-preview" class="customize-preview">
+                    <span class="player-letter">m</span>
+                </div>
+                <p class="customize-label">Color</p>
+                <div id="color-choices" class="color-choices"></div>
+                <p class="customize-label">Nickname</p>
+                <input id="nickname-input" type="text" maxlength="12" placeholder="Type a name" autocomplete="off" spellcheck="false">
+                <button id="back-customize-btn" class="menu-button">Back</button>
+            </div>
+
+            <!-- Maps Screen -->
+            <div id="maps-screen" class="menu-screen maps-menu" style="display: none;">
+                <h2>Maps</h2>
+                <p>Pick a level</p>
+                <div class="map-list">
+                    <button id="map-level-1-btn" class="map-card">
+                        <span class="map-pic map-pic-1"></span>
+                        <span class="map-title">Level 1</span>
+                        <span class="map-look">Sunny sky outside</span>
+                        <span class="map-lock">Locked</span>
+                    </button>
+                    <button id="map-level-2-btn" class="map-card">
+                        <span class="map-pic map-pic-2"></span>
+                        <span class="map-title">Level 2</span>
+                        <span class="map-look">Dark dungeon cave</span>
+                        <span class="map-lock">Locked</span>
+                    </button>
+                    <button id="map-level-3-btn" class="map-card">
+                        <span class="map-pic map-pic-3"></span>
+                        <span class="map-title">Level 3</span>
+                        <span class="map-look">Night sky with stars</span>
+                        <span class="map-lock">Locked</span>
+                    </button>
+                </div>
+                <button id="back-maps-btn" class="menu-button">Back</button>
+            </div>
+
             <!-- You Win Screen -->
             <div id="you-win-screen" class="menu-screen" style="display: none;">
                 <h2>You Win!</h2>
-                <p id="win-blurb">You finished Level 2!</p>
+                <p id="win-blurb">You finished Level 3!</p>
                 <p>Your Score: <span id="win-score">0</span></p>
                 <button id="win-restart-button" class="menu-button">Play Again</button>
                 <button id="win-menu-button" class="menu-button">Main Menu</button>
             </div>
         </div>
+        <div id="hearts-bar">
+            <span class="heart">♥</span>
+            <span class="heart">♥</span>
+            <span class="heart">♥</span>
+        </div>
         <div id="yesterday-score-bar">
             <span id="yesterday-score-display" style="font-weight: bold;">Yesterday's Top Score: 0</span>
         </div>
     </div>
-    <script src="script.js?v=109"></script>
+    <script src="script.js?v=148"></script>
 </body>
 </html>
