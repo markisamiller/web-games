@@ -10,6 +10,10 @@
     {
       "source": "/api/highscore",
       "destination": "/api/highscore.js"
+    },
+    {
+      "source": "/food-fight",
+      "destination": "/food-fight/index.html"
     }
   ],
   "redirects": [

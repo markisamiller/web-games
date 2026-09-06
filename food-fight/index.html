@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Fight</title>
+    <link rel="stylesheet" href="/food-fight/styles.css">
+</head>
+<body>
+    <div class="game-wrapper">
+        <div id="game">
+            <div id="hud" hidden></div>
+
+            <div id="arena">
+                <div class="arena-glow"></div>
+                <div id="round-banner"></div>
+                <div id="fighters"></div>
+                <div id="hit-spark"></div>
+                <div id="stage-floor"></div>
+            </div>
+
+            <div id="controls-hint" hidden></div>
+
+            <div id="main-menu" class="menu-screen">
+                <h1>Food Fight</h1>
+                <p class="tagline">Snacks. Soda. Showdown.</p>
+                <p class="pick-label">Pick a match</p>
+                <div id="match-list"></div>
+                <button id="online-btn" class="menu-button online-button">Play Online</button>
+                <button id="how-btn" class="menu-button">How to Play</button>
+            </div>
+
+            <div id="online-screen" class="menu-screen" hidden>
+                <h2>Play Online</h2>
+                <p>Make a room, then send friends the code.</p>
+                <button id="create-room-btn" class="menu-button online-button">Create Room</button>
+                <p class="pick-label">or join a friend</p>
+                <input id="join-code" type="text" maxlength="4" placeholder="CODE" autocomplete="off" spellcheck="false">
+                <button id="join-room-btn" class="menu-button">Join Room</button>
+                <p id="online-error" class="online-error"></p>
+                <button id="online-back-btn" class="menu-button">Back</button>
+            </div>
+
+            <div id="lobby-screen" class="menu-screen" hidden>
+                <h2>Room</h2>
+                <p class="pick-label">Tell your friends this code</p>
+                <div id="room-code">----</div>
+                <ul id="lobby-players"></ul>
+                <p id="lobby-status">Waiting for friends...</p>
+                <button id="lobby-start-btn" class="menu-button online-button">Start Fight</button>
+                <button id="lobby-leave-btn" class="menu-button">Leave Room</button>
+            </div>
+
+            <div id="how-screen" class="menu-screen" hidden>
+                <h2>How to Play</h2>
+                <p>Play on one computer, or play online with friends.</p>
+                <p><strong>Online:</strong> everyone uses A D to move, W to jump, F to punch.</p>
+                <p><strong>Same computer:</strong></p>
+                <p><strong>Coke:</strong> A and D to move, W to jump, F to punch</p>
+                <p><strong>Pepsi:</strong> arrow keys to move, up to jump, K to punch</p>
+                <p><strong>Hershey:</strong> J and L to move, I to jump, U to punch</p>
+                <p><strong>Mars:</strong> 1 and 3 to move, 2 to jump, 4 to punch</p>
+                <p>Punch the other foods. Last snack standing wins.</p>
+                <p>Press P to pause.</p>
+                <button id="how-back-btn" class="menu-button">Back</button>
+            </div>
+
+            <div id="pause-screen" class="menu-screen" hidden>
+                <h2>Paused</h2>
+                <p>Press P or hit Resume</p>
+                <button id="resume-btn" class="menu-button">Resume</button>
+                <button id="pause-menu-btn" class="menu-button">Main Menu</button>
+            </div>
+
+            <div id="win-screen" class="menu-screen" hidden>
+                <h2 id="win-title">Coke wins!</h2>
+                <p id="win-blurb">What a tasty finish.</p>
+                <button id="rematch-btn" class="menu-button">Rematch</button>
+                <button id="win-menu-btn" class="menu-button">Main Menu</button>
+            </div>
+        </div>
+    </div>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="/food-fight/script.js"></script>
+</body>
+</html>

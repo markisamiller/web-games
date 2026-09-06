@@ -1,0 +1,529 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #140c08;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #fff;
+    overflow: hidden;
+}
+
+.game-wrapper {
+    width: 1000px;
+    transform-origin: center center;
+}
+
+#game {
+    position: relative;
+    width: 1000px;
+    height: 560px;
+    border: 4px solid #3a2416;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #2a1a12;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+#hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 5;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    padding: 10px 14px;
+    background: linear-gradient(rgba(20, 10, 6, 0.85), transparent);
+}
+
+.health-card {
+    flex: 1;
+    min-width: 0;
+}
+
+.fighter-name {
+    font-size: 15px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    text-shadow: 0 2px 0 #000;
+}
+
+.health-bar {
+    height: 18px;
+    background: #2b1a12;
+    border: 3px solid #fff;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.health-fill {
+    height: 100%;
+    width: 100%;
+    transform-origin: left center;
+    transition: width 0.12s linear;
+}
+
+.health-fill.coke {
+    background: linear-gradient(#ff5a5a, #c8102e);
+}
+
+.health-fill.pepsi {
+    background: linear-gradient(#5aa7ff, #004b93);
+}
+
+.health-fill.hershey {
+    background: linear-gradient(#d4924a, #6b3410);
+}
+
+.health-fill.mars {
+    background: linear-gradient(#ffd54a, #c8102e);
+}
+
+.health-nums {
+    margin-top: 3px;
+    font-size: 12px;
+    opacity: 0.85;
+}
+
+.vs-badge {
+    min-width: 44px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffd100;
+    color: #1a0f08;
+    font-weight: bold;
+    border-radius: 8px;
+    box-shadow: 0 3px 0 #b8860b;
+    margin-bottom: 14px;
+}
+
+#arena {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 20% 18%, rgba(255, 255, 255, 0.14) 0 8px, transparent 9px),
+        radial-gradient(circle at 80% 22%, rgba(255, 255, 255, 0.12) 0 6px, transparent 7px),
+        linear-gradient(#7ec8e3 0%, #f7d39a 58%, #e8b86d 58%, #c98a3c 100%);
+}
+
+.arena-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 70%, rgba(255, 230, 150, 0.25), transparent 55%);
+    pointer-events: none;
+}
+
+#stage-floor {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 78px;
+    background:
+        repeating-linear-gradient(90deg, #8b5a2b 0 40px, #7a4b20 40px 80px);
+    border-top: 8px solid #5c3310;
+    box-shadow: 0 -8px 0 #3d220c;
+}
+
+#round-banner {
+    position: absolute;
+    top: 86px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 18px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 10px;
+    font-size: 22px;
+    font-weight: bold;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 4;
+}
+
+#round-banner.show {
+    opacity: 1;
+}
+
+.fighter {
+    position: absolute;
+    z-index: 3;
+    transform-origin: center bottom;
+    filter: drop-shadow(4px 5px 0 rgba(0, 0, 0, 0.28));
+}
+
+.fighter .body {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.fighter .face {
+    position: absolute;
+    left: 50%;
+    top: 28%;
+    width: 46px;
+    transform: translateX(-50%);
+}
+
+.fighter .eye {
+    position: absolute;
+    top: 0;
+    width: 10px;
+    height: 12px;
+    background: #111;
+    border-radius: 50%;
+}
+
+.fighter .eye.left { left: 6px; }
+.fighter .eye.right { right: 6px; }
+
+.fighter .mouth {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    width: 16px;
+    height: 8px;
+    border: 3px solid #111;
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    transform: translateX(-50%);
+}
+
+.fighter .fist {
+    position: absolute;
+    top: 48%;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #f2d2b6;
+    border: 3px solid #111;
+    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.15);
+}
+
+.fighter.face-right .fist { right: -6px; }
+.fighter.face-left .fist { left: -6px; }
+
+.fighter.punching.face-right .fist { right: -38px; }
+.fighter.punching.face-left .fist { left: -38px; }
+
+.fighter.hurt {
+    filter: brightness(1.35) drop-shadow(4px 5px 0 rgba(0, 0, 0, 0.28));
+}
+
+.fighter.down {
+    transform: rotate(90deg);
+}
+
+.fighter .name-tag {
+    position: absolute;
+    left: 50%;
+    bottom: -22px;
+    transform: translateX(-50%);
+    font-size: 12px;
+    font-weight: bold;
+    white-space: nowrap;
+    text-shadow: 0 2px 0 #000;
+}
+
+.fighter.soda {
+    width: 74px;
+    height: 118px;
+}
+
+.fighter.soda .body {
+    border: 4px solid #111;
+    border-radius: 10px 10px 14px 14px;
+    overflow: hidden;
+}
+
+.fighter.soda .body::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 8px;
+    right: 8px;
+    height: 14px;
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 0 0 8px 8px;
+}
+
+.fighter.soda.coke .body {
+    background: linear-gradient(#4a120c 0 28%, #5a1a10 28% 100%);
+}
+
+.fighter.soda.pepsi .body {
+    background: linear-gradient(#d6e7ff 0 18%, #003087 18% 38%, #c8102e 38% 52%, #003087 52% 100%);
+}
+
+.fighter.soda.coke .body::after,
+.fighter.soda.pepsi .body::after {
+    content: "";
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    height: 42%;
+    border-radius: 8px;
+    background: rgba(40, 18, 10, 0.55);
+}
+
+.fighter.bar {
+    width: 108px;
+    height: 58px;
+}
+
+.fighter.bar .body {
+    border: 4px solid #111;
+    border-radius: 10px;
+}
+
+.fighter.bar .face {
+    top: 10px;
+}
+
+.fighter.bar .fist {
+    top: 18px;
+}
+
+.fighter.bar.hershey .body {
+    background: linear-gradient(#6b3410, #3d1c08);
+}
+
+.fighter.bar.hershey .body::before {
+    content: "HERSHEY";
+    position: absolute;
+    top: 4px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: #f3e2b2;
+}
+
+.fighter.bar.mars .body {
+    background: linear-gradient(#2b1a0c 0 28%, #c8102e 28% 55%, #f4c430 55% 100%);
+}
+
+.fighter.bar.mars .body::before {
+    content: "MARS";
+    position: absolute;
+    top: 4px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    color: #fff;
+}
+
+#hit-spark {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    margin: -14px 0 0 -14px;
+    border-radius: 50%;
+    background: #fff59a;
+    box-shadow: 0 0 16px #ffea00;
+    opacity: 0;
+    z-index: 6;
+    pointer-events: none;
+}
+
+#hit-spark.show {
+    opacity: 1;
+}
+
+#controls-hint {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 8px;
+    z-index: 5;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    padding: 0 16px;
+    font-size: 12px;
+    font-weight: bold;
+    text-shadow: 0 2px 0 #000;
+    pointer-events: none;
+}
+
+#how-screen {
+    justify-content: flex-start;
+    padding-top: 28px;
+    overflow: auto;
+}
+
+.menu-screen {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(16, 8, 4, 0.88);
+    text-align: center;
+}
+
+.menu-screen[hidden],
+#hud[hidden],
+#controls-hint[hidden] {
+    display: none;
+}
+
+h1 {
+    margin: 0 0 8px;
+    font-size: 64px;
+    letter-spacing: 2px;
+    color: #ffd100;
+    text-shadow: 0 5px 0 #c8102e;
+}
+
+h2 {
+    margin: 0 0 16px;
+    font-size: 40px;
+    color: #ffd100;
+}
+
+.tagline {
+    margin: 0 0 28px;
+    font-size: 20px;
+}
+
+.pick-label {
+    margin: 0 0 12px;
+    font-size: 16px;
+    opacity: 0.9;
+}
+
+#match-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.menu-button,
+.match-button {
+    min-width: 280px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 10px;
+    background: #e31837;
+    color: #fff;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #8b1020;
+}
+
+.match-button {
+    background: #004b93;
+    box-shadow: 0 4px 0 #002c57;
+}
+
+.online-button {
+    background: #0a8f3d;
+    box-shadow: 0 4px 0 #056328;
+}
+
+#join-code {
+    width: 180px;
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border: 3px solid #ffd100;
+    border-radius: 10px;
+    background: #2a1a12;
+    color: #fff;
+    font-size: 28px;
+    font-weight: bold;
+    letter-spacing: 8px;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+#join-code::placeholder {
+    letter-spacing: 4px;
+    color: #8a7a68;
+}
+
+#room-code {
+    margin: 0 0 16px;
+    padding: 8px 24px;
+    background: #ffd100;
+    color: #1a0f08;
+    font-size: 56px;
+    font-weight: bold;
+    letter-spacing: 10px;
+    border-radius: 12px;
+}
+
+#lobby-players {
+    list-style: none;
+    margin: 0 0 12px;
+    padding: 0;
+    font-size: 20px;
+}
+
+#lobby-players li {
+    margin: 0 0 6px;
+}
+
+#lobby-status,
+.online-error {
+    min-height: 24px;
+    margin: 0 0 12px;
+    font-size: 16px;
+}
+
+.online-error {
+    color: #ffb4b4;
+}
+
+.match-button small {
+    display: block;
+    font-size: 13px;
+    font-weight: normal;
+    opacity: 0.9;
+}
+
+.menu-button:disabled {
+    opacity: 0.45;
+    cursor: default;
+    transform: none;
+}
+
+.menu-button:hover,
+.match-button:hover {
+    filter: brightness(1.08);
+}
+
+.menu-button:active,
+.match-button:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #8b1020;
+}
+
+#how-screen p {
+    margin: 0 0 10px;
+    max-width: 520px;
+    font-size: 18px;
+    line-height: 1.35;
+}
