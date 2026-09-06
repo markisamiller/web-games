@@ -12,6 +12,7 @@ const GRAVITY = 0.7;
 const JUMP_POWER = 15;
 const WALK_SPEED = 5;
 const PUNCH_DAMAGE = 10;
+const ENEMY_DAMAGE = 5;
 const PUNCH_TIME = 22;
 const PUNCH_HIT_START = 6;
 const PUNCH_HIT_END = 14;
@@ -60,10 +61,12 @@ const CONTROL_SETS = [
 
 const MATCHES = [
     {
-        id: 'party',
-        title: '4 Player Battle',
-        subtitle: 'Coke, Pepsi, Hershey, and Mars',
-        foods: ['coke', 'pepsi', 'hershey', 'mars']
+        id: 'squad',
+        title: 'Snack Squad',
+        subtitle: 'You vs Pepsi, Hershey, and Mars',
+        foods: ['coke', 'pepsi', 'hershey', 'mars'],
+        vsAi: true,
+        playerId: 'coke'
     },
     {
         id: 'soda',
@@ -76,8 +79,41 @@ const MATCHES = [
         title: 'Chocolate Clash',
         subtitle: 'Hershey vs Mars',
         foods: ['hershey', 'mars']
+    },
+    {
+        id: 'party',
+        title: '4 Player Battle',
+        subtitle: 'Kids control every snack',
+        foods: ['coke', 'pepsi', 'hershey', 'mars']
     }
 ];
+
+const AI_STYLES = {
+    pepsi: {
+        speed: 5,
+        punchRange: 72,
+        jumpChance: 0.004,
+        punchDelay: 48,
+        approachGap: 48,
+        startThink: 18
+    },
+    hershey: {
+        speed: 4.2,
+        punchRange: 86,
+        jumpChance: 0.014,
+        punchDelay: 78,
+        approachGap: 130,
+        startThink: 40
+    },
+    mars: {
+        speed: 3.5,
+        punchRange: 78,
+        jumpChance: 0.007,
+        punchDelay: 96,
+        approachGap: 210,
+        startThink: 64
+    }
+};
 
 const ONLINE_FOODS = ['coke', 'pepsi', 'hershey', 'mars'];
 const EMPTY_INPUT = { left: false, right: false, jump: false, punch: false };
@@ -127,7 +163,21 @@ function groundY(fighter) {
     return arena.clientHeight - FLOOR_HEIGHT - fighter.height;
 }
 
-function startX(index, total, width) {
+function startX(index, total, width, match) {
+    if (match && match.vsAi) {
+        if (index === 0) {
+            return 80;
+        }
+        const enemyIndex = index - 1;
+        const enemyCount = Math.max(1, total - 1);
+        const left = 420;
+        const right = ARENA_WIDTH - 80 - width;
+        if (enemyCount === 1) {
+            return right;
+        }
+        return left + ((right - left) * enemyIndex) / (enemyCount - 1);
+    }
+
     const left = 70;
     const right = ARENA_WIDTH - 70 - width;
     if (total === 1) {
@@ -136,9 +186,11 @@ function startX(index, total, width) {
     return left + ((right - left) * index) / (total - 1);
 }
 
-function makeFighter(foodId, index, total) {
+function makeFighter(foodId, index, total, match) {
     const food = FOODS[foodId];
     const controls = CONTROL_SETS[index];
+    const isAi = !!(match && match.vsAi && foodId !== match.playerId);
+    const style = AI_STYLES[foodId] || AI_STYLES.pepsi;
 
     return {
         id: food.id,
@@ -146,7 +198,7 @@ function makeFighter(foodId, index, total) {
         kind: food.kind,
         width: food.width,
         height: food.height,
-        x: startX(index, total, food.width),
+        x: startX(index, total, food.width, match),
         y: arena.clientHeight - FLOOR_HEIGHT - food.height,
         vx: 0,
         vy: 0,
@@ -157,6 +209,12 @@ function makeFighter(foodId, index, total) {
         stun: 0,
         hitIds: [],
         down: false,
+        isAi,
+        team: (match && match.vsAi) ? (isAi ? 'enemy' : 'player') : food.id,
+        ai: {
+            timer: style.startThink,
+            style
+        },
         controls,
         el: null,
         fillEl: null,
@@ -210,6 +268,10 @@ function buildHud() {
 
 function buildHints() {
     const hint = document.getElementById('controls-hint');
+    if (currentMatch.vsAi) {
+        hint.innerHTML = '<span>You are Coke: A D move, W jump, F punch</span><span>Enemies hit for 5</span><span>P pause</span>';
+        return;
+    }
     if (net.role !== 'offline' && fighters[net.myIndex]) {
         const mine = fighters[net.myIndex];
         hint.innerHTML = `<span>You are ${mine.name}: A D move, W jump, F punch</span><span>P pause</span>`;
@@ -241,7 +303,7 @@ function startMatch(match) {
     clearKeys();
     currentMatch = match;
     fightEnding = false;
-    fighters = match.foods.map((foodId, index) => makeFighter(foodId, index, match.foods.length));
+    fighters = match.foods.map((foodId, index) => makeFighter(foodId, index, match.foods.length, match));
     buildArenaFighters();
     buildHud();
     buildHints();
@@ -255,7 +317,10 @@ function startMatch(match) {
     sparkTimer = 0;
     updateHealthBars();
     hideMenus();
-    showBanner(match.foods.length > 2 ? 'Free-for-all!' : `${fighters[0].name} vs ${fighters[1].name}!`, 90);
+    const banner = match.vsAi
+        ? 'They all want Coke!'
+        : (match.foods.length > 2 ? 'Free-for-all!' : `${fighters[0].name} vs ${fighters[1].name}!`);
+    showBanner(banner, 90);
     drawFighters();
 }
 
@@ -315,8 +380,21 @@ function tryPunch(fighter) {
     fighter.hitIds = [];
 }
 
+function sameTeam(a, b) {
+    return a.team && b.team && a.team === b.team;
+}
+
+function getPlayer() {
+    return fighters.find((fighter) => !fighter.isAi && !fighter.down) ||
+        fighters.find((fighter) => !fighter.isAi);
+}
+
 function landHit(attacker, defender) {
-    defender.health -= PUNCH_DAMAGE;
+    if (sameTeam(attacker, defender)) {
+        return;
+    }
+    const damage = attacker.isAi ? ENEMY_DAMAGE : PUNCH_DAMAGE;
+    defender.health -= damage;
     defender.stun = HIT_STUN;
     defender.punchTimer = 0;
     defender.vx = attacker.facing * KNOCKBACK;
@@ -336,8 +414,25 @@ function landHit(attacker, defender) {
 }
 
 function checkWinner() {
+    if (fightEnding) {
+        return;
+    }
+
+    if (currentMatch.vsAi) {
+        const player = fighters.find((fighter) => !fighter.isAi);
+        const enemiesAlive = fighters.some((fighter) => fighter.isAi && !fighter.down);
+        if (player && player.down) {
+            endFight(fighters.find((fighter) => fighter.isAi && !fighter.down) || player);
+            return;
+        }
+        if (player && !enemiesAlive) {
+            endFight(player);
+        }
+        return;
+    }
+
     const alive = livingFighters();
-    if (alive.length !== 1 || fightEnding) {
+    if (alive.length !== 1) {
         return;
     }
     endFight(alive[0]);
@@ -348,8 +443,16 @@ function endFight(champ) {
     gameActive = false;
     winner = champ;
     updateHealthBars();
-    document.getElementById('win-title').textContent = `${champ.name} wins!`;
-    document.getElementById('win-blurb').textContent = `${champ.name} takes the snack crown.`;
+    if (currentMatch.vsAi && champ.isAi) {
+        document.getElementById('win-title').textContent = 'Snack Squad wins!';
+        document.getElementById('win-blurb').textContent = 'Pepsi, Hershey, and Mars took you down.';
+    } else if (currentMatch.vsAi) {
+        document.getElementById('win-title').textContent = 'You win!';
+        document.getElementById('win-blurb').textContent = 'You beat Pepsi, Hershey, and Mars!';
+    } else {
+        document.getElementById('win-title').textContent = `${champ.name} wins!`;
+        document.getElementById('win-blurb').textContent = `${champ.name} takes the snack crown.`;
+    }
     document.getElementById('rematch-btn').hidden = net.role === 'guest';
     if (net.role === 'host') {
         sendNetState(true);
@@ -368,12 +471,49 @@ function readOnlineButtons() {
     };
 }
 
+function controlAi(fighter) {
+    const player = getPlayer();
+    fighter.vx = 0;
+    if (!player || player.down) {
+        return;
+    }
+
+    const style = fighter.ai.style;
+    fighter.ai.timer -= 1;
+
+    const myCenter = fighter.x + fighter.width / 2;
+    const theirCenter = player.x + player.width / 2;
+    const dx = theirCenter - myCenter;
+    const dist = Math.abs(dx);
+    fighter.facing = dx >= 0 ? 1 : -1;
+
+    if (dist > style.approachGap + 10) {
+        fighter.vx = Math.sign(dx) * style.speed;
+    } else if (dist < style.approachGap - 16) {
+        fighter.vx = -Math.sign(dx) * style.speed * 0.7;
+    }
+
+    if (onGround(fighter) && Math.random() < style.jumpChance) {
+        fighter.vy = -JUMP_POWER;
+    }
+
+    if (player.stun === 0 && dist < style.punchRange && fighter.cooldown === 0 && fighter.ai.timer <= 0) {
+        tryPunch(fighter);
+        fighter.ai.timer = style.punchDelay;
+    }
+}
+
 function controlFighter(fighter) {
     if (fighter.down || fighter.stun > 0 || fighter.punchTimer > 0) {
         return;
     }
 
     fighter.vx = 0;
+
+    if (fighter.isAi && net.role === 'offline') {
+        controlAi(fighter);
+        return;
+    }
 
     if (net.role === 'host') {
         const input = fighter.onlineInput || EMPTY_INPUT;
@@ -474,7 +614,7 @@ function updateCombat(attacker) {
         const punchFrame = PUNCH_TIME - attacker.punchTimer;
         if (punchFrame >= PUNCH_HIT_START && punchFrame <= PUNCH_HIT_END) {
             fighters.forEach((defender) => {
-                if (defender === attacker || defender.down || attacker.hitIds.includes(defender.id)) {
+                if (defender === attacker || defender.down || attacker.hitIds.includes(defender.id) || sameTeam(attacker, defender)) {
                     return;
                 }
                 if (boxesHit(punchBox(attacker), bodyBox(defender))) {
@@ -508,7 +648,7 @@ function faceNearest(fighter) {
     let nearest = null;
     let best = Infinity;
     fighters.forEach((other) => {
-        if (other === fighter || other.down) {
+        if (other === fighter || other.down || sameTeam(fighter, other)) {
             return;
         }
         const dist = Math.abs((other.x + other.width / 2) - (fighter.x + fighter.width / 2));
