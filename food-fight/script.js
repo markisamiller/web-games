@@ -11,7 +11,7 @@ const FLOOR_HEIGHT = 78;
 const GRAVITY = 0.7;
 const JUMP_POWER = 15;
 const WALK_SPEED = 5;
-const PUNCH_DAMAGE = 10;
+const PUNCH_DAMAGE = 15;
 const ENEMY_DAMAGE = 5;
 const PUNCH_TIME = 22;
 const PUNCH_HIT_START = 6;
@@ -20,6 +20,7 @@ const PUNCH_COOLDOWN = 18;
 const HIT_STUN = 14;
 const KNOCKBACK = 8;
 const MAX_HEALTH = 100;
+const ENEMY_HEALTH = 234;
 
 const FOODS = {
     coke: {
@@ -215,7 +216,8 @@ function makeFighter(foodId, index, total, match) {
         vx: 0,
         vy: 0,
         facing: index < total / 2 ? 1 : -1,
-        health: MAX_HEALTH,
+        maxHealth: isAi ? ENEMY_HEALTH : MAX_HEALTH,
+        health: isAi ? ENEMY_HEALTH : MAX_HEALTH,
         punchTimer: 0,
         cooldown: 0,
         stun: 0,
@@ -263,7 +265,7 @@ function buildHud() {
             <div class="health-bar">
                 <div class="health-fill ${fighter.id}"></div>
             </div>
-            <div class="health-nums">100</div>
+            <div class="health-nums">${fighter.health}</div>
         `;
         fighter.fillEl = card.querySelector('.health-fill');
         fighter.numsEl = card.querySelector('.health-nums');
@@ -347,7 +349,7 @@ function showBanner(text, frames) {
 
 function updateHealthBars() {
     fighters.forEach((fighter) => {
-        const pct = Math.max(0, (fighter.health / MAX_HEALTH) * 100);
+        const pct = Math.max(0, (fighter.health / fighter.maxHealth) * 100);
         fighter.fillEl.style.width = `${pct}%`;
         fighter.numsEl.textContent = Math.max(0, fighter.health);
     });
