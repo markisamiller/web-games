@@ -90,38 +90,31 @@ const MATCHES = [
 
 const AI_STYLES = {
     pepsi: {
-        speed: 5,
-        punchRange: 72,
-        jumpChance: 0.004,
-        punchDelay: 48,
-        attackGap: 70,
-        holdGap: 180,
-        side: -1,
-        startThink: 18
+        speed: 5.6,
+        punchRange: 82,
+        jumpChance: 0.008,
+        punchDelay: 16,
+        attackGap: 60,
+        startThink: 8
     },
     hershey: {
-        speed: 4.2,
-        punchRange: 86,
-        jumpChance: 0.014,
-        punchDelay: 78,
-        attackGap: 78,
-        holdGap: 210,
-        side: 1,
-        startThink: 40
+        speed: 5.1,
+        punchRange: 96,
+        jumpChance: 0.02,
+        punchDelay: 22,
+        attackGap: 54,
+        startThink: 14
     },
     mars: {
-        speed: 3.5,
-        punchRange: 78,
-        jumpChance: 0.007,
-        punchDelay: 96,
-        attackGap: 86,
-        holdGap: 300,
-        side: 1,
-        startThink: 64
+        speed: 4.7,
+        punchRange: 90,
+        jumpChance: 0.01,
+        punchDelay: 28,
+        attackGap: 68,
+        startThink: 22
     }
 };
 
-const AI_TURN_MS = 2000;
 const AI_SLOT = {
     pepsi: 0,
     hershey: 1,
@@ -129,6 +122,8 @@ const AI_SLOT = {
 };
 
 let aiParkMode = 'split';
+let aiAttackerId = '';
+let aiAttackerUntil = 0;
 
 const ONLINE_FOODS = ['coke', 'pepsi', 'hershey', 'mars'];
 const EMPTY_INPUT = { left: false, right: false, jump: false, punch: false };
@@ -320,6 +315,8 @@ function startMatch(match) {
     fightEnding = false;
     fighters = match.foods.map((foodId, index) => makeFighter(foodId, index, match.foods.length, match));
     aiParkMode = 'split';
+    aiAttackerId = '';
+    aiAttackerUntil = 0;
     buildArenaFighters();
     buildHud();
     buildHints();
@@ -491,12 +488,37 @@ function livingEnemies() {
     return fighters.filter((fighter) => fighter.isAi && !fighter.down);
 }
 
-function currentAttacker() {
-    const enemies = livingEnemies().slice().sort((a, b) => a.id.localeCompare(b.id));
+function enemyDist(fighter, player) {
+    return Math.abs((fighter.x + fighter.width / 2) - (player.x + player.width / 2));
+}
+
+function updateAiAttacker(player) {
+    const enemies = livingEnemies();
     if (!enemies.length) {
-        return null;
+        aiAttackerId = '';
+        return;
     }
-    return enemies[Math.floor(Date.now() / AI_TURN_MS) % enemies.length];
+
+    const now = Date.now();
+    const current = enemies.find((fighter) => fighter.id === aiAttackerId);
+    if (current && now < aiAttackerUntil) {
+        const closer = enemies.find((fighter) => (
+            fighter !== current &&
+            enemyDist(fighter, player) < 80 &&
+            enemyDist(current, player) > 200
+        ));
+        if (!closer) {
+            return;
+        }
+    }
+
+    enemies.sort((a, b) => enemyDist(a, player) - enemyDist(b, player));
+    aiAttackerId = enemies[0].id;
+    aiAttackerUntil = now + 1500;
+}
+
+function currentAttacker() {
+    return livingEnemies().find((fighter) => fighter.id === aiAttackerId) || null;
 }
 
 function updateAiParkMode(player) {
@@ -532,10 +554,7 @@ function enemyTargetX(fighter, player, isAttacker) {
         offsets = [-200, -360, -520];
     }
 
-    let offset = offsets[slot];
-    if (isAttacker) {
-        offset = Math.sign(offset || 1) * 72;
-    }
+    const offset = offsets[slot];
 
     return Math.max(
         20,
@@ -554,25 +573,41 @@ function controlAi(fighter) {
     fighter.ai.timer -= 1;
 
     const myCenter = fighter.x + fighter.width / 2;
-    const theirCenter = player.x + player.width / 2;
+    const theirCenter = player.x + player.width / 2 + player.vx * 10;
     const dist = Math.abs(theirCenter - myCenter);
-    fighter.facing = theirCenter >= myCenter ? 1 : -1;
+    const toward = Math.sign(theirCenter - myCenter) || 1;
+    fighter.facing = toward;
 
-    const attacker = currentAttacker();
-    const isAttacker = attacker === fighter;
-    const targetX = enemyTargetX(fighter, player, isAttacker);
-    const toSpot = targetX - fighter.x;
-    if (Math.abs(toSpot) > 14) {
-        fighter.vx = Math.sign(toSpot) * style.speed;
+    const isAttacker = currentAttacker() === fighter;
+    if (isAttacker) {
+        if (dist > style.attackGap + 8) {
+            fighter.vx = toward * style.speed;
+        } else if (dist < style.attackGap - 16) {
+            fighter.vx = -toward * style.speed * 0.45;
+        }
+
+        const playerHigh = player.y + player.height < fighter.y + fighter.height - 10;
+        const duckPunch = player.punchTimer > 0 && player.facing === toward && dist < 120;
+        if (onGround(fighter) && (playerHigh || duckPunch || Math.random() < style.jumpChance)) {
+            fighter.vy = -JUMP_POWER;
+        }
+
+        if (player.stun === 0 && dist < style.punchRange && fighter.cooldown === 0 && fighter.ai.timer <= 0) {
+            tryPunch(fighter);
+            fighter.ai.timer = style.punchDelay;
+        }
+        return;
     }
 
-    if (onGround(fighter) && Math.random() < style.jumpChance) {
-        fighter.vy = -JUMP_POWER;
+    const targetX = enemyTargetX(fighter, player, false);
+    if (Math.abs(targetX - fighter.x) > 14) {
+        fighter.vx = Math.sign(targetX - fighter.x) * style.speed;
     }
 
-    if (isAttacker && player.stun === 0 && dist < style.punchRange && fighter.cooldown === 0 && fighter.ai.timer <= 0) {
+    const playerComingIn = player.vx && Math.sign(player.vx) === toward * -1 && dist < style.punchRange;
+    if (playerComingIn && player.stun === 0 && fighter.cooldown === 0 && fighter.ai.timer <= 0) {
         tryPunch(fighter);
-        fighter.ai.timer = style.punchDelay;
+        fighter.ai.timer = style.punchDelay + 18;
     }
 }
 
@@ -766,6 +801,7 @@ function tick() {
             const player = getPlayer();
             if (player) {
                 updateAiParkMode(player);
+                updateAiAttacker(player);
             }
         }
         fighters.forEach(controlFighter);
