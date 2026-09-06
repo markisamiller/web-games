@@ -94,7 +94,9 @@ const AI_STYLES = {
         punchRange: 72,
         jumpChance: 0.004,
         punchDelay: 48,
-        approachGap: 48,
+        attackGap: 70,
+        holdGap: 180,
+        side: -1,
         startThink: 18
     },
     hershey: {
@@ -102,7 +104,9 @@ const AI_STYLES = {
         punchRange: 86,
         jumpChance: 0.014,
         punchDelay: 78,
-        approachGap: 130,
+        attackGap: 78,
+        holdGap: 210,
+        side: 1,
         startThink: 40
     },
     mars: {
@@ -110,10 +114,15 @@ const AI_STYLES = {
         punchRange: 78,
         jumpChance: 0.007,
         punchDelay: 96,
-        approachGap: 210,
+        attackGap: 86,
+        holdGap: 300,
+        side: 1,
         startThink: 64
     }
 };
+
+const AI_SPREAD = 160;
+const AI_TURN_MS = 2000;
 
 const ONLINE_FOODS = ['coke', 'pepsi', 'hershey', 'mars'];
 const EMPTY_INPUT = { left: false, right: false, jump: false, punch: false };
@@ -471,6 +480,62 @@ function readOnlineButtons() {
     };
 }
 
+function livingEnemies() {
+    return fighters.filter((fighter) => fighter.isAi && !fighter.down);
+}
+
+function currentAttacker() {
+    const enemies = livingEnemies().slice().sort((a, b) => a.id.localeCompare(b.id));
+    if (!enemies.length) {
+        return null;
+    }
+    return enemies[Math.floor(Date.now() / AI_TURN_MS) % enemies.length];
+}
+
+function openSide(player, need) {
+    const center = player.x + player.width / 2;
+    const leftRoom = center - 20;
+    const rightRoom = ARENA_WIDTH - 20 - center;
+    if (leftRoom >= need && leftRoom >= rightRoom) {
+        return -1;
+    }
+    if (rightRoom >= need) {
+        return 1;
+    }
+    return leftRoom >= rightRoom ? -1 : 1;
+}
+
+function enemyTargetX(fighter, player, isAttacker) {
+    const style = fighter.ai.style;
+    const enemies = livingEnemies().slice().sort((a, b) => a.id.localeCompare(b.id));
+    const index = Math.max(0, enemies.indexOf(fighter));
+    const theirCenter = player.x + player.width / 2;
+    const need = isAttacker ? style.attackGap + 40 : style.holdGap + 40;
+    let side = style.side;
+    if ((side === -1 && theirCenter - 20 < need) || (side === 1 && ARENA_WIDTH - 20 - theirCenter < need)) {
+        side = openSide(player, need);
+    }
+
+    const sameSide = enemies.filter((other) => {
+        if (other === fighter) {
+            return false;
+        }
+        const otherNeed = other === currentAttacker() ? other.ai.style.attackGap + 40 : other.ai.style.holdGap + 40;
+        let otherSide = other.ai.style.side;
+        if ((otherSide === -1 && theirCenter - 20 < otherNeed) || (otherSide === 1 && ARENA_WIDTH - 20 - theirCenter < otherNeed)) {
+            otherSide = openSide(player, otherNeed);
+        }
+        return otherSide === side;
+    }).length;
+
+    const extra = isAttacker ? 0 : 90 * (index + sameSide);
+    const gap = (isAttacker ? style.attackGap : style.holdGap) + extra;
+    return Math.max(
+        20,
+        Math.min(ARENA_WIDTH - fighter.width - 20, theirCenter + side * gap - fighter.width / 2)
+    );
+}
+
 function controlAi(fighter) {
     const player = getPlayer();
     fighter.vx = 0;
@@ -483,21 +548,27 @@ function controlAi(fighter) {
 
     const myCenter = fighter.x + fighter.width / 2;
     const theirCenter = player.x + player.width / 2;
-    const dx = theirCenter - myCenter;
-    const dist = Math.abs(dx);
-    fighter.facing = dx >= 0 ? 1 : -1;
+    const dist = Math.abs(theirCenter - myCenter);
+    fighter.facing = theirCenter >= myCenter ? 1 : -1;
 
-    if (dist > style.approachGap + 10) {
-        fighter.vx = Math.sign(dx) * style.speed;
-    } else if (dist < style.approachGap - 16) {
-        fighter.vx = -Math.sign(dx) * style.speed * 0.7;
+    const attacker = currentAttacker();
+    const isAttacker = attacker === fighter;
+    const targetX = enemyTargetX(fighter, player, isAttacker);
+    const toSpot = targetX - fighter.x;
+    if (Math.abs(toSpot) > 8) {
+        fighter.vx = Math.sign(toSpot) * style.speed;
+    }
+
+    if (!isAttacker && dist < 180) {
+        const away = myCenter - theirCenter || openSide(player, 180);
+        fighter.vx = Math.sign(away) * style.speed;
     }
 
     if (onGround(fighter) && Math.random() < style.jumpChance) {
         fighter.vy = -JUMP_POWER;
     }
 
-    if (player.stun === 0 && dist < style.punchRange && fighter.cooldown === 0 && fighter.ai.timer <= 0) {
+    if (isAttacker && player.stun === 0 && dist < style.punchRange && fighter.cooldown === 0 && fighter.ai.timer <= 0) {
         tryPunch(fighter);
         fighter.ai.timer = style.punchDelay;
     }
@@ -607,6 +678,81 @@ function keepApart() {
             }
         }
     }
+
+    keepAiSpread();
+    keepWaitersOffPlayer();
+}
+
+function keepAiSpread() {
+    if (!currentMatch.vsAi) {
+        return;
+    }
+
+    const enemies = livingEnemies();
+    for (let i = 0; i < enemies.length; i += 1) {
+        for (let j = i + 1; j < enemies.length; j += 1) {
+            const first = enemies[i];
+            const second = enemies[j];
+            const firstCenter = first.x + first.width / 2;
+            const secondCenter = second.x + second.width / 2;
+            const dist = Math.abs(firstCenter - secondCenter);
+            if (dist >= AI_SPREAD) {
+                continue;
+            }
+
+            const push = (AI_SPREAD - dist) / 2;
+            if (firstCenter <= secondCenter) {
+                first.x -= push;
+                second.x += push;
+            } else {
+                first.x += push;
+                second.x -= push;
+            }
+        }
+    }
+
+    enemies.forEach(clampFighterX);
+}
+
+function clampFighterX(fighter) {
+    if (fighter.x < 20) {
+        fighter.x = 20;
+    }
+    if (fighter.x > ARENA_WIDTH - fighter.width - 20) {
+        fighter.x = ARENA_WIDTH - fighter.width - 20;
+    }
+}
+
+function keepWaitersOffPlayer() {
+    if (!currentMatch.vsAi) {
+        return;
+    }
+
+    const player = getPlayer();
+    if (!player || player.down) {
+        return;
+    }
+
+    const attacker = currentAttacker();
+    const playerCenter = player.x + player.width / 2;
+    livingEnemies().forEach((fighter) => {
+        if (fighter === attacker) {
+            return;
+        }
+
+        const dist = (fighter.x + fighter.width / 2) - playerCenter;
+        if (Math.abs(dist) >= 180) {
+            return;
+        }
+
+        let dir = dist === 0 ? openSide(player, 180) : Math.sign(dist);
+        const next = fighter.x + dir * 20;
+        if (next < 20 || next > ARENA_WIDTH - fighter.width - 20) {
+            dir = -dir;
+        }
+        fighter.x += dir * (180 - Math.abs(dist));
+        clampFighterX(fighter);
+    });
 }
 
 function updateCombat(attacker) {
