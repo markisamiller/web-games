@@ -121,8 +121,14 @@ const AI_STYLES = {
     }
 };
 
-const AI_SPREAD = 160;
 const AI_TURN_MS = 2000;
+const AI_SLOT = {
+    pepsi: 0,
+    hershey: 1,
+    mars: 2
+};
+
+let aiParkMode = 'split';
 
 const ONLINE_FOODS = ['coke', 'pepsi', 'hershey', 'mars'];
 const EMPTY_INPUT = { left: false, right: false, jump: false, punch: false };
@@ -313,6 +319,7 @@ function startMatch(match) {
     currentMatch = match;
     fightEnding = false;
     fighters = match.foods.map((foodId, index) => makeFighter(foodId, index, match.foods.length, match));
+    aiParkMode = 'split';
     buildArenaFighters();
     buildHud();
     buildHints();
@@ -492,47 +499,47 @@ function currentAttacker() {
     return enemies[Math.floor(Date.now() / AI_TURN_MS) % enemies.length];
 }
 
-function openSide(player, need) {
+function updateAiParkMode(player) {
     const center = player.x + player.width / 2;
-    const leftRoom = center - 20;
-    const rightRoom = ARENA_WIDTH - 20 - center;
-    if (leftRoom >= need && leftRoom >= rightRoom) {
-        return -1;
+    if (aiParkMode === 'left-pack') {
+        if (center >= 360) {
+            aiParkMode = center > 740 ? 'right-pack' : 'split';
+        }
+        return;
     }
-    if (rightRoom >= need) {
-        return 1;
+    if (aiParkMode === 'right-pack') {
+        if (center <= 640) {
+            aiParkMode = center < 260 ? 'left-pack' : 'split';
+        }
+        return;
     }
-    return leftRoom >= rightRoom ? -1 : 1;
+    if (center < 240) {
+        aiParkMode = 'left-pack';
+        return;
+    }
+    if (center > 760) {
+        aiParkMode = 'right-pack';
+    }
 }
 
 function enemyTargetX(fighter, player, isAttacker) {
-    const style = fighter.ai.style;
-    const enemies = livingEnemies().slice().sort((a, b) => a.id.localeCompare(b.id));
-    const index = Math.max(0, enemies.indexOf(fighter));
-    const theirCenter = player.x + player.width / 2;
-    const need = isAttacker ? style.attackGap + 40 : style.holdGap + 40;
-    let side = style.side;
-    if ((side === -1 && theirCenter - 20 < need) || (side === 1 && ARENA_WIDTH - 20 - theirCenter < need)) {
-        side = openSide(player, need);
+    const center = player.x + player.width / 2;
+    const slot = AI_SLOT[fighter.id] || 0;
+    let offsets = [-200, 210, 380];
+    if (aiParkMode === 'left-pack') {
+        offsets = [200, 360, 520];
+    } else if (aiParkMode === 'right-pack') {
+        offsets = [-200, -360, -520];
     }
 
-    const sameSide = enemies.filter((other) => {
-        if (other === fighter) {
-            return false;
-        }
-        const otherNeed = other === currentAttacker() ? other.ai.style.attackGap + 40 : other.ai.style.holdGap + 40;
-        let otherSide = other.ai.style.side;
-        if ((otherSide === -1 && theirCenter - 20 < otherNeed) || (otherSide === 1 && ARENA_WIDTH - 20 - theirCenter < otherNeed)) {
-            otherSide = openSide(player, otherNeed);
-        }
-        return otherSide === side;
-    }).length;
+    let offset = offsets[slot];
+    if (isAttacker) {
+        offset = Math.sign(offset || 1) * 72;
+    }
 
-    const extra = isAttacker ? 0 : 90 * (index + sameSide);
-    const gap = (isAttacker ? style.attackGap : style.holdGap) + extra;
     return Math.max(
         20,
-        Math.min(ARENA_WIDTH - fighter.width - 20, theirCenter + side * gap - fighter.width / 2)
+        Math.min(ARENA_WIDTH - fighter.width - 20, center + offset - fighter.width / 2)
     );
 }
 
@@ -555,13 +562,8 @@ function controlAi(fighter) {
     const isAttacker = attacker === fighter;
     const targetX = enemyTargetX(fighter, player, isAttacker);
     const toSpot = targetX - fighter.x;
-    if (Math.abs(toSpot) > 8) {
+    if (Math.abs(toSpot) > 14) {
         fighter.vx = Math.sign(toSpot) * style.speed;
-    }
-
-    if (!isAttacker && dist < 180) {
-        const away = myCenter - theirCenter || openSide(player, 180);
-        fighter.vx = Math.sign(away) * style.speed;
     }
 
     if (onGround(fighter) && Math.random() < style.jumpChance) {
@@ -678,81 +680,6 @@ function keepApart() {
             }
         }
     }
-
-    keepAiSpread();
-    keepWaitersOffPlayer();
-}
-
-function keepAiSpread() {
-    if (!currentMatch.vsAi) {
-        return;
-    }
-
-    const enemies = livingEnemies();
-    for (let i = 0; i < enemies.length; i += 1) {
-        for (let j = i + 1; j < enemies.length; j += 1) {
-            const first = enemies[i];
-            const second = enemies[j];
-            const firstCenter = first.x + first.width / 2;
-            const secondCenter = second.x + second.width / 2;
-            const dist = Math.abs(firstCenter - secondCenter);
-            if (dist >= AI_SPREAD) {
-                continue;
-            }
-
-            const push = (AI_SPREAD - dist) / 2;
-            if (firstCenter <= secondCenter) {
-                first.x -= push;
-                second.x += push;
-            } else {
-                first.x += push;
-                second.x -= push;
-            }
-        }
-    }
-
-    enemies.forEach(clampFighterX);
-}
-
-function clampFighterX(fighter) {
-    if (fighter.x < 20) {
-        fighter.x = 20;
-    }
-    if (fighter.x > ARENA_WIDTH - fighter.width - 20) {
-        fighter.x = ARENA_WIDTH - fighter.width - 20;
-    }
-}
-
-function keepWaitersOffPlayer() {
-    if (!currentMatch.vsAi) {
-        return;
-    }
-
-    const player = getPlayer();
-    if (!player || player.down) {
-        return;
-    }
-
-    const attacker = currentAttacker();
-    const playerCenter = player.x + player.width / 2;
-    livingEnemies().forEach((fighter) => {
-        if (fighter === attacker) {
-            return;
-        }
-
-        const dist = (fighter.x + fighter.width / 2) - playerCenter;
-        if (Math.abs(dist) >= 180) {
-            return;
-        }
-
-        let dir = dist === 0 ? openSide(player, 180) : Math.sign(dist);
-        const next = fighter.x + dir * 20;
-        if (next < 20 || next > ARENA_WIDTH - fighter.width - 20) {
-            dir = -dir;
-        }
-        fighter.x += dir * (180 - Math.abs(dist));
-        clampFighterX(fighter);
-    });
 }
 
 function updateCombat(attacker) {
@@ -834,6 +761,12 @@ function tick() {
     if (gameActive && !isPaused) {
         if (net.role === 'host') {
             applyOnlineInputs();
+        }
+        if (currentMatch.vsAi) {
+            const player = getPlayer();
+            if (player) {
+                updateAiParkMode(player);
+            }
         }
         fighters.forEach(controlFighter);
         fighters.forEach(moveFighter);
