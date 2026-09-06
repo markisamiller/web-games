@@ -53,7 +53,7 @@ const FOODS = {
 };
 
 const CONTROL_SETS = [
-    { left: 'KeyA', right: 'KeyD', jump: 'KeyW', punch: 'KeyF', hint: 'A D move, W jump, F punch' },
+    { left: 'KeyA', right: 'KeyD', jump: 'KeyW', punch: 'Space', hint: 'A D move, W jump, Space punch' },
     { left: 'ArrowLeft', right: 'ArrowRight', jump: 'ArrowUp', punch: 'KeyK', hint: 'arrows move, up jump, K punch' },
     { left: 'KeyJ', right: 'KeyL', jump: 'KeyI', punch: 'KeyU', hint: 'J L move, I jump, U punch' },
     { left: 'Digit1', right: 'Digit3', jump: 'Digit2', punch: 'Digit4', hint: '1 3 move, 2 jump, 4 punch' }
@@ -279,12 +279,12 @@ function buildHud() {
 function buildHints() {
     const hint = document.getElementById('controls-hint');
     if (currentMatch.vsAi) {
-        hint.innerHTML = '<span>You are Coke: A D move, W jump, F punch</span><span>Enemies hit for 5</span><span>P pause</span>';
+        hint.innerHTML = '<span>You are Coke: A D move, W jump, Space punch</span><span>Enemies hit for 5</span><span>P pause</span>';
         return;
     }
     if (net.role !== 'offline' && fighters[net.myIndex]) {
         const mine = fighters[net.myIndex];
-        hint.innerHTML = `<span>You are ${mine.name}: A D move, W jump, F punch</span><span>P pause</span>`;
+        hint.innerHTML = `<span>You are ${mine.name}: A D move, W jump, Space punch</span><span>P pause</span>`;
         return;
     }
     hint.innerHTML = fighters
@@ -479,8 +479,8 @@ function readOnlineButtons() {
     return {
         left: !!(keys.KeyA || keys.ArrowLeft),
         right: !!(keys.KeyD || keys.ArrowRight),
-        jump: !!(keys.KeyW || keys.ArrowUp || keys.Space),
-        punch: !!(keys.KeyF || keys.KeyK)
+        jump: !!(keys.KeyW || keys.ArrowUp),
+        punch: !!(keys.Space || keys.KeyF || keys.KeyK)
     };
 }
 
