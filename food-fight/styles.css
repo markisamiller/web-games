@@ -154,6 +154,11 @@ body {
     opacity: 1;
 }
 
+#round-banner.count {
+    font-size: 72px;
+    padding: 10px 28px;
+}
+
 .fighter {
     position: absolute;
     z-index: 3;

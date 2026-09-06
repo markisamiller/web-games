@@ -141,6 +141,8 @@ let isPaused = false;
 let winner = null;
 let sparkTimer = 0;
 let bannerTimer = 0;
+let startDelay = 0;
+let lastTickAt = 0;
 let fightEnding = false;
 let lastStateAt = 0;
 let lastKeysAt = 0;
@@ -328,12 +330,12 @@ function startMatch(match) {
     isPaused = false;
     winner = null;
     sparkTimer = 0;
+    startDelay = 3000;
+    lastTickAt = 0;
     updateHealthBars();
     hideMenus();
-    const banner = match.vsAi
-        ? 'They all want Coke!'
-        : (match.foods.length > 2 ? 'Free-for-all!' : `${fighters[0].name} vs ${fighters[1].name}!`);
-    showBanner(banner, 90);
+    showBanner('3', 999);
+    bannerEl.classList.add('count');
     drawFighters();
 }
 
@@ -794,6 +796,27 @@ function tick() {
     }
 
     if (gameActive && !isPaused) {
+        const now = Date.now();
+        const dt = lastTickAt ? Math.min(40, now - lastTickAt) : 16;
+        lastTickAt = now;
+
+        if (startDelay > 0) {
+            startDelay -= dt;
+            if (startDelay > 0) {
+                bannerEl.textContent = String(Math.max(1, Math.ceil(startDelay / 1000)));
+                bannerEl.classList.add('show', 'count');
+                drawFighters();
+                if (net.role === 'host') {
+                    sendNetState(false);
+                }
+                requestAnimationFrame(tick);
+                return;
+            }
+            startDelay = 0;
+            bannerEl.classList.remove('count');
+            showBanner('Fight!', 70);
+        }
+
         if (net.role === 'host') {
             applyOnlineInputs();
         }
@@ -828,6 +851,8 @@ function tick() {
         if (net.role === 'host') {
             sendNetState(false);
         }
+    } else {
+        lastTickAt = 0;
     }
 
     requestAnimationFrame(tick);
@@ -995,7 +1020,8 @@ function sendNetState(force) {
             show: bannerTimer > 0
         },
         paused: isPaused,
-        winnerName: winner ? winner.name : ''
+        winnerName: winner ? winner.name : '',
+        startDelay
     });
 }
 
@@ -1036,6 +1062,10 @@ function applyNetState(data) {
     sparkEl.classList.toggle('show', data.spark.show);
     bannerEl.textContent = data.banner.text;
     bannerEl.classList.toggle('show', data.banner.show);
+    if (typeof data.startDelay === 'number') {
+        startDelay = data.startDelay;
+        bannerEl.classList.toggle('count', startDelay > 0);
+    }
 
     if (data.paused && !isPaused && gameActive) {
         isPaused = true;
@@ -1197,6 +1227,9 @@ function goToMenu() {
     clearKeys();
     gameActive = false;
     isPaused = false;
+    startDelay = 0;
+    lastTickAt = 0;
+    bannerEl.classList.remove('count');
     document.getElementById('hud').hidden = true;
     document.getElementById('controls-hint').hidden = true;
     document.getElementById('rematch-btn').hidden = false;
