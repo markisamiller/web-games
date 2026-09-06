@@ -96,35 +96,34 @@ const AI_STYLES = {
         jumpChance: 0.008,
         punchDelay: 16,
         attackGap: 60,
-        startThink: 8
+        startThink: 8,
+        side: -1,
+        thinkMin: 28,
+        thinkMax: 55
     },
     hershey: {
-        speed: 5.1,
+        speed: 4.4,
         punchRange: 96,
         jumpChance: 0.02,
         punchDelay: 22,
         attackGap: 54,
-        startThink: 14
+        startThink: 36,
+        side: 1,
+        thinkMin: 18,
+        thinkMax: 42
     },
     mars: {
-        speed: 4.7,
+        speed: 3.4,
         punchRange: 90,
         jumpChance: 0.01,
         punchDelay: 28,
-        attackGap: 68,
-        startThink: 22
+        attackGap: 80,
+        startThink: 70,
+        side: 1,
+        thinkMin: 50,
+        thinkMax: 95
     }
 };
-
-const AI_SLOT = {
-    pepsi: 0,
-    hershey: 1,
-    mars: 2
-};
-
-let aiParkMode = 'split';
-let aiAttackerId = '';
-let aiAttackerUntil = 0;
 
 const ONLINE_FOODS = ['coke', 'pepsi', 'hershey', 'mars'];
 const EMPTY_INPUT = { left: false, right: false, jump: false, punch: false };
@@ -227,6 +226,9 @@ function makeFighter(foodId, index, total, match) {
         team: (match && match.vsAi) ? (isAi ? 'enemy' : 'player') : food.id,
         ai: {
             timer: style.startThink,
+            nextThink: style.startThink,
+            targetX: startX(index, total, food.width, match),
+            mode: 'hold',
             style
         },
         controls,
@@ -318,9 +320,6 @@ function startMatch(match) {
     currentMatch = match;
     fightEnding = false;
     fighters = match.foods.map((foodId, index) => makeFighter(foodId, index, match.foods.length, match));
-    aiParkMode = 'split';
-    aiAttackerId = '';
-    aiAttackerUntil = 0;
     buildArenaFighters();
     buildHud();
     buildHints();
@@ -492,78 +491,58 @@ function livingEnemies() {
     return fighters.filter((fighter) => fighter.isAi && !fighter.down);
 }
 
-function enemyDist(fighter, player) {
-    return Math.abs((fighter.x + fighter.width / 2) - (player.x + player.width / 2));
+function clampAiX(fighter, x) {
+    return Math.max(20, Math.min(ARENA_WIDTH - fighter.width - 20, x));
 }
 
-function updateAiAttacker(player) {
-    const enemies = livingEnemies();
-    if (!enemies.length) {
-        aiAttackerId = '';
-        return;
-    }
-
-    const now = Date.now();
-    const current = enemies.find((fighter) => fighter.id === aiAttackerId);
-    if (current && now < aiAttackerUntil) {
-        const closer = enemies.find((fighter) => (
-            fighter !== current &&
-            enemyDist(fighter, player) < 80 &&
-            enemyDist(current, player) > 200
-        ));
-        if (!closer) {
-            return;
+function pickAiMode(fighter) {
+    const roll = Math.random();
+    if (fighter.id === 'pepsi') {
+        if (roll < 0.65) {
+            return 'chase';
         }
+        return roll < 0.85 ? 'hold' : 'wait';
     }
-
-    enemies.sort((a, b) => enemyDist(a, player) - enemyDist(b, player));
-    aiAttackerId = enemies[0].id;
-    aiAttackerUntil = now + 1500;
-}
-
-function currentAttacker() {
-    return livingEnemies().find((fighter) => fighter.id === aiAttackerId) || null;
-}
-
-function updateAiParkMode(player) {
-    const center = player.x + player.width / 2;
-    if (aiParkMode === 'left-pack') {
-        if (center >= 360) {
-            aiParkMode = center > 740 ? 'right-pack' : 'split';
+    if (fighter.id === 'hershey') {
+        if (roll < 0.35) {
+            return 'chase';
         }
-        return;
-    }
-    if (aiParkMode === 'right-pack') {
-        if (center <= 640) {
-            aiParkMode = center < 260 ? 'left-pack' : 'split';
+        if (roll < 0.7) {
+            return 'flank';
         }
-        return;
+        return roll < 0.85 ? 'hold' : 'wait';
     }
-    if (center < 240) {
-        aiParkMode = 'left-pack';
-        return;
+    if (roll < 0.25) {
+        return 'chase';
     }
-    if (center > 760) {
-        aiParkMode = 'right-pack';
+    if (roll < 0.5) {
+        return 'flank';
     }
+    return roll < 0.75 ? 'hold' : 'wait';
 }
 
-function enemyTargetX(fighter, player, isAttacker) {
-    const center = player.x + player.width / 2;
-    const slot = AI_SLOT[fighter.id] || 0;
-    let offsets = [-200, 210, 380];
-    if (aiParkMode === 'left-pack') {
-        offsets = [200, 360, 520];
-    } else if (aiParkMode === 'right-pack') {
-        offsets = [-200, -360, -520];
+function thinkAi(fighter, player) {
+    const style = fighter.ai.style;
+    const mode = pickAiMode(fighter);
+    const playerCenter = player.x + player.width / 2;
+    fighter.ai.mode = mode;
+    fighter.ai.nextThink = style.thinkMin + Math.floor(Math.random() * (style.thinkMax - style.thinkMin));
+
+    if (mode === 'chase') {
+        fighter.ai.targetX = clampAiX(fighter, playerCenter + style.side * style.attackGap - fighter.width / 2);
+        return;
     }
-
-    const offset = offsets[slot];
-
-    return Math.max(
-        20,
-        Math.min(ARENA_WIDTH - fighter.width - 20, center + offset - fighter.width / 2)
-    );
+    if (mode === 'flank') {
+        const gap = 170 + Math.floor(Math.random() * 90);
+        fighter.ai.targetX = clampAiX(fighter, playerCenter + style.side * gap - fighter.width / 2);
+        return;
+    }
+    if (mode === 'hold') {
+        const wander = fighter.x + (Math.random() - 0.5) * 220;
+        fighter.ai.targetX = clampAiX(fighter, wander);
+        return;
+    }
+    fighter.ai.targetX = fighter.x;
 }
 
 function controlAi(fighter) {
@@ -575,43 +554,30 @@ function controlAi(fighter) {
 
     const style = fighter.ai.style;
     fighter.ai.timer -= 1;
+    fighter.ai.nextThink -= 1;
+    if (fighter.ai.nextThink <= 0) {
+        thinkAi(fighter, player);
+    }
 
     const myCenter = fighter.x + fighter.width / 2;
-    const theirCenter = player.x + player.width / 2 + player.vx * 10;
+    const theirCenter = player.x + player.width / 2;
     const dist = Math.abs(theirCenter - myCenter);
-    const toward = Math.sign(theirCenter - myCenter) || 1;
-    fighter.facing = toward;
+    fighter.facing = theirCenter >= myCenter ? 1 : -1;
 
-    const isAttacker = currentAttacker() === fighter;
-    if (isAttacker) {
-        if (dist > style.attackGap + 8) {
-            fighter.vx = toward * style.speed;
-        } else if (dist < style.attackGap - 16) {
-            fighter.vx = -toward * style.speed * 0.45;
-        }
-
-        const playerHigh = player.y + player.height < fighter.y + fighter.height - 10;
-        const duckPunch = player.punchTimer > 0 && player.facing === toward && dist < 120;
-        if (onGround(fighter) && (playerHigh || duckPunch || Math.random() < style.jumpChance)) {
-            fighter.vy = -JUMP_POWER;
-        }
-
-        if (player.stun === 0 && dist < style.punchRange && fighter.cooldown === 0 && fighter.ai.timer <= 0) {
-            tryPunch(fighter);
-            fighter.ai.timer = style.punchDelay;
-        }
-        return;
+    const toSpot = fighter.ai.targetX - fighter.x;
+    if (Math.abs(toSpot) > 12) {
+        fighter.vx = Math.sign(toSpot) * style.speed;
     }
 
-    const targetX = enemyTargetX(fighter, player, false);
-    if (Math.abs(targetX - fighter.x) > 14) {
-        fighter.vx = Math.sign(targetX - fighter.x) * style.speed;
+    const playerHigh = player.y + player.height < fighter.y + fighter.height - 10;
+    const duckPunch = player.punchTimer > 0 && player.facing === fighter.facing && dist < 120;
+    if (onGround(fighter) && (playerHigh || duckPunch || Math.random() < style.jumpChance)) {
+        fighter.vy = -JUMP_POWER;
     }
 
-    const playerComingIn = player.vx && Math.sign(player.vx) === toward * -1 && dist < style.punchRange;
-    if (playerComingIn && player.stun === 0 && fighter.cooldown === 0 && fighter.ai.timer <= 0) {
+    if (player.stun === 0 && dist < style.punchRange && fighter.cooldown === 0 && fighter.ai.timer <= 0) {
         tryPunch(fighter);
-        fighter.ai.timer = style.punchDelay + 18;
+        fighter.ai.timer = style.punchDelay;
     }
 }
 
@@ -821,13 +787,6 @@ function tick() {
 
         if (net.role === 'host') {
             applyOnlineInputs();
-        }
-        if (currentMatch.vsAi) {
-            const player = getPlayer();
-            if (player) {
-                updateAiParkMode(player);
-                updateAiAttacker(player);
-            }
         }
         fighters.forEach(controlFighter);
         fighters.forEach(moveFighter);
