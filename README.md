@@ -8,7 +8,7 @@ A collection of web-based games hosted at and.ms
 A fast-paced jumping game where you control an M&M character avoiding obstacles.
 - Play at: https://m.and.ms
 
-### Food Fight
+### Hershey Super Power
 A snack fighting game. Coke, Pepsi, Hershey, and Mars can fight on one keyboard or online.
 - Play at: https://m.and.ms/food-fight
 

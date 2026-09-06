@@ -1,4 +1,4 @@
-// Food Fight
+// Hershey Super Power
 // Open index.html in your browser to play.
 //
 // Want to add a new food later?

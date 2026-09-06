@@ -390,8 +390,9 @@ body {
 
 h1 {
     margin: 0 0 8px;
-    font-size: 64px;
-    letter-spacing: 2px;
+    font-size: 44px;
+    letter-spacing: 1px;
+    line-height: 1.1;
     color: #ffd100;
     text-shadow: 0 5px 0 #c8102e;
 }
