@@ -20,7 +20,7 @@ const PUNCH_COOLDOWN = 18;
 const HIT_STUN = 14;
 const KNOCKBACK = 8;
 const MAX_HEALTH = 100;
-const ENEMY_HEALTH = 234;
+const ENEMY_HEALTH = 1;
 
 const FOODS = {
     coke: {
