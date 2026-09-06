@@ -17,8 +17,10 @@ const PUNCH_TIME = 22;
 const PUNCH_HIT_START = 6;
 const PUNCH_HIT_END = 14;
 const PUNCH_COOLDOWN = 18;
-const HIT_STUN = 14;
-const KNOCKBACK = 8;
+const HIT_STUN = 18;
+const KNOCKBACK = 16;
+const KNOCKBACK_UP = 11;
+const KNOCKBACK_TIME = 22;
 const MAX_HEALTH = 100;
 const ENEMY_HEALTH = 1;
 
@@ -221,6 +223,7 @@ function makeFighter(foodId, index, total, match) {
         cooldown: 0,
         stun: 0,
         hitIds: [],
+        knockback: 0,
         down: false,
         isAi,
         team: (match && match.vsAi) ? (isAi ? 'enemy' : 'player') : food.id,
@@ -413,8 +416,10 @@ function landHit(attacker, defender) {
     defender.health -= damage;
     defender.stun = HIT_STUN;
     defender.punchTimer = 0;
-    defender.vx = attacker.facing * KNOCKBACK;
-    defender.vy = -4;
+    defender.knockback = KNOCKBACK_TIME;
+    const power = attacker.isAi ? KNOCKBACK * 0.7 : KNOCKBACK;
+    defender.vx = attacker.facing * power;
+    defender.vy = attacker.isAi ? -7 : -KNOCKBACK_UP;
     attacker.hitIds.push(defender.id);
     sparkTimer = 8;
     sparkEl.style.left = `${defender.x + defender.width / 2}px`;
@@ -582,7 +587,7 @@ function controlAi(fighter) {
 }
 
 function controlFighter(fighter) {
-    if (fighter.down || fighter.stun > 0 || fighter.punchTimer > 0) {
+    if (fighter.down || fighter.stun > 0 || fighter.knockback > 0 || fighter.punchTimer > 0) {
         return;
     }
 
@@ -637,6 +642,32 @@ function applyOnlineInputs() {
 }
 
 function moveFighter(fighter) {
+    if (fighter.knockback > 0 || fighter.stun > 0) {
+        fighter.x += fighter.vx;
+        fighter.vy += GRAVITY;
+        fighter.y += fighter.vy;
+        fighter.vx *= 0.93;
+        if (fighter.knockback > 0) {
+            fighter.knockback -= 1;
+        }
+
+        const floor = groundY(fighter);
+        if (fighter.y > floor) {
+            fighter.y = floor;
+            fighter.vy = 0;
+            fighter.vx *= 0.75;
+        }
+        if (fighter.x < 20) {
+            fighter.x = 20;
+            fighter.vx = Math.abs(fighter.vx) * 0.4;
+        }
+        if (fighter.x > ARENA_WIDTH - fighter.width - 20) {
+            fighter.x = ARENA_WIDTH - fighter.width - 20;
+            fighter.vx = -Math.abs(fighter.vx) * 0.4;
+        }
+        return;
+    }
+
     if (fighter.down) {
         fighter.y = groundY(fighter);
         fighter.vy = 0;
@@ -667,6 +698,9 @@ function keepApart() {
         for (let j = i + 1; j < alive.length; j += 1) {
             const first = alive[i];
             const second = alive[j];
+            if (first.knockback > 0 || second.knockback > 0) {
+                continue;
+            }
             if (!boxesHit(bodyBox(first), bodyBox(second))) {
                 continue;
             }
