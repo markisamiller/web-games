@@ -23,6 +23,9 @@ const KNOCKBACK_UP = 11;
 const KNOCKBACK_TIME = 22;
 const MAX_HEALTH = 100;
 const ENEMY_HEALTH = 1;
+const HEAL_AMOUNT = 25;
+const HEART_WAIT = 4000;
+const MAX_HEARTS = 2;
 
 const FOODS = {
     coke: {
@@ -148,6 +151,8 @@ let lastTickAt = 0;
 let fightEnding = false;
 let lastStateAt = 0;
 let lastKeysAt = 0;
+let hearts = [];
+let heartWait = 0;
 
 let net = {
     role: 'offline',
@@ -288,7 +293,7 @@ function buildHud() {
 function buildHints() {
     const hint = document.getElementById('controls-hint');
     if (currentMatch.vsAi) {
-        hint.innerHTML = '<span>You are Coke: A D move, W jump, Space punch</span><span>Enemies hit for 5</span><span>P pause</span>';
+        hint.innerHTML = '<span>You are Coke: A D move, W jump, Space punch</span><span>Grab ♥ to heal</span><span>P pause</span>';
         return;
     }
     if (net.role !== 'offline' && fighters[net.myIndex]) {
@@ -336,6 +341,8 @@ function startMatch(match) {
     sparkTimer = 0;
     startDelay = 3000;
     lastTickAt = 0;
+    clearHearts();
+    heartWait = 1200;
     updateHealthBars();
     hideMenus();
     showBanner('3', 999);
@@ -354,6 +361,101 @@ function updateHealthBars() {
         const pct = Math.max(0, (fighter.health / fighter.maxHealth) * 100);
         fighter.fillEl.style.width = `${pct}%`;
         fighter.numsEl.textContent = Math.max(0, fighter.health);
+    });
+}
+
+function clearHearts() {
+    hearts.forEach((heart) => {
+        if (heart.el) {
+            heart.el.remove();
+        }
+    });
+    hearts = [];
+}
+
+function spawnHeart() {
+    if (hearts.length >= MAX_HEARTS) {
+        return;
+    }
+    const el = document.createElement('div');
+    el.className = 'heal-heart';
+    el.textContent = '♥';
+    const x = 90 + Math.random() * (ARENA_WIDTH - 220);
+    const y = arena.clientHeight - FLOOR_HEIGHT - 64;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+    arena.appendChild(el);
+    hearts.push({
+        x,
+        y,
+        width: 40,
+        height: 40,
+        el
+    });
+}
+
+function healFighter(fighter, amount) {
+    const before = fighter.health;
+    fighter.health = Math.min(fighter.maxHealth, fighter.health + amount);
+    const gained = fighter.health - before;
+    if (gained > 0) {
+        updateHealthBars();
+        showBanner(`+${gained} health!`, 50);
+    }
+}
+
+function collectHearts() {
+    const collectors = fighters.filter((fighter) => !fighter.down && !fighter.isAi);
+    hearts = hearts.filter((heart) => {
+        const got = collectors.some((fighter) => {
+            if (!boxesHit(bodyBox(fighter), heart)) {
+                return false;
+            }
+            healFighter(fighter, HEAL_AMOUNT);
+            return true;
+        });
+        if (got && heart.el) {
+            heart.el.remove();
+        }
+        return !got;
+    });
+}
+
+function updateHearts(dt) {
+    heartWait -= dt;
+    if (heartWait <= 0) {
+        spawnHeart();
+        heartWait = HEART_WAIT;
+    }
+    collectHearts();
+}
+
+function drawHearts() {
+    hearts.forEach((heart) => {
+        if (!heart.el) {
+            return;
+        }
+        heart.el.style.left = `${heart.x}px`;
+        heart.el.style.top = `${heart.y}px`;
+    });
+}
+
+function syncHearts(list) {
+    clearHearts();
+    (list || []).forEach((item) => {
+        const el = document.createElement('div');
+        el.className = 'heal-heart';
+        el.textContent = '♥';
+        el.style.left = `${item.x}px`;
+        el.style.top = `${item.y}px`;
+        arena.appendChild(el);
+        hearts.push({
+            x: item.x,
+            y: item.y,
+            width: 40,
+            height: 40,
+            el
+        });
     });
 }
 
@@ -827,7 +929,9 @@ function tick() {
         keepApart();
         fighters.forEach(faceNearest);
         fighters.forEach(updateCombat);
+        updateHearts(dt);
         drawFighters();
+        drawHearts();
 
         if (sparkTimer > 0) {
             sparkTimer -= 1;
@@ -1016,7 +1120,8 @@ function sendNetState(force) {
         },
         paused: isPaused,
         winnerName: winner ? winner.name : '',
-        startDelay
+        startDelay,
+        hearts: hearts.map((heart) => ({ x: heart.x, y: heart.y }))
     });
 }
 
@@ -1060,6 +1165,13 @@ function applyNetState(data) {
     if (typeof data.startDelay === 'number') {
         startDelay = data.startDelay;
         bannerEl.classList.toggle('count', startDelay > 0);
+    }
+    if (data.hearts) {
+        const same = data.hearts.length === hearts.length &&
+            data.hearts.every((item, index) => hearts[index] && hearts[index].x === item.x && hearts[index].y === item.y);
+        if (!same) {
+            syncHearts(data.hearts);
+        }
     }
 
     if (data.paused && !isPaused && gameActive) {
@@ -1230,6 +1342,7 @@ function goToMenu() {
     document.getElementById('rematch-btn').hidden = false;
     bannerEl.classList.remove('show');
     sparkEl.classList.remove('show');
+    clearHearts();
     showScreen('main-menu');
 }
 
