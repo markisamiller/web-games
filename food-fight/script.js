@@ -26,6 +26,7 @@ const ENEMY_HEALTH = 1;
 const HEAL_AMOUNT = 25;
 const HEART_WAIT = 4000;
 const MAX_HEARTS = 2;
+const HEAL_COOLDOWN = 4000;
 
 const FOODS = {
     coke: {
@@ -153,6 +154,7 @@ let lastStateAt = 0;
 let lastKeysAt = 0;
 let hearts = [];
 let heartWait = 0;
+let healReadyAt = 0;
 
 let net = {
     role: 'offline',
@@ -293,7 +295,7 @@ function buildHud() {
 function buildHints() {
     const hint = document.getElementById('controls-hint');
     if (currentMatch.vsAi) {
-        hint.innerHTML = '<span>You are Coke: A D move, W jump, Space punch</span><span>Grab ♥ to heal</span><span>P pause</span>';
+        hint.innerHTML = '<span>You are Coke: A D move, W jump, Space punch</span><span>Heal button or grab ♥</span><span>P pause</span>';
         return;
     }
     if (net.role !== 'offline' && fighters[net.myIndex]) {
@@ -334,6 +336,9 @@ function startMatch(match) {
 
     document.getElementById('hud').hidden = false;
     document.getElementById('controls-hint').hidden = false;
+    document.getElementById('heal-btn').hidden = false;
+    healReadyAt = 0;
+    updateHealButton();
 
     gameActive = true;
     isPaused = false;
@@ -342,7 +347,7 @@ function startMatch(match) {
     startDelay = 3000;
     lastTickAt = 0;
     clearHearts();
-    heartWait = 1200;
+    heartWait = 0;
     updateHealthBars();
     hideMenus();
     showBanner('3', 999);
@@ -401,6 +406,45 @@ function healFighter(fighter, amount) {
     if (gained > 0) {
         updateHealthBars();
         showBanner(`+${gained} health!`, 50);
+    }
+    return gained;
+}
+
+function updateHealButton() {
+    const btn = document.getElementById('heal-btn');
+    if (!btn || btn.hidden) {
+        return;
+    }
+    const wait = healReadyAt - Date.now();
+    if (wait > 0) {
+        btn.disabled = true;
+        btn.textContent = `Heal ${Math.ceil(wait / 1000)}`;
+        return;
+    }
+    btn.disabled = false;
+    btn.textContent = 'Heal';
+}
+
+function useHeal() {
+    if (!gameActive || isPaused || startDelay > 0 || fightEnding) {
+        return;
+    }
+    const player = net.role !== 'offline' && fighters[net.myIndex]
+        ? fighters[net.myIndex]
+        : getPlayer();
+    if (!player || player.down) {
+        return;
+    }
+    if (Date.now() < healReadyAt) {
+        return;
+    }
+    if (player.health >= player.maxHealth) {
+        showBanner('Full health!', 40);
+        return;
+    }
+    if (healFighter(player, HEAL_AMOUNT) > 0) {
+        healReadyAt = Date.now() + HEAL_COOLDOWN;
+        updateHealButton();
     }
 }
 
@@ -950,6 +994,7 @@ function tick() {
         if (net.role === 'host') {
             sendNetState(false);
         }
+        updateHealButton();
     } else {
         lastTickAt = 0;
     }
@@ -1339,6 +1384,7 @@ function goToMenu() {
     bannerEl.classList.remove('count');
     document.getElementById('hud').hidden = true;
     document.getElementById('controls-hint').hidden = true;
+    document.getElementById('heal-btn').hidden = true;
     document.getElementById('rematch-btn').hidden = false;
     bannerEl.classList.remove('show');
     sparkEl.classList.remove('show');
@@ -1382,6 +1428,7 @@ window.addEventListener('keyup', (event) => {
     keys[event.code] = false;
 });
 
+document.getElementById('heal-btn').addEventListener('click', useHeal);
 document.getElementById('how-btn').addEventListener('click', () => showScreen('how-screen'));
 document.getElementById('how-back-btn').addEventListener('click', () => showScreen('main-menu'));
 document.getElementById('online-btn').addEventListener('click', () => {

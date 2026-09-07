@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hershey Super Power</title>
-    <link rel="stylesheet" href="/food-fight/styles.css">
+    <link rel="stylesheet" href="/food-fight/styles.css?v=heal">
 </head>
 <body>
     <div class="game-wrapper">
@@ -20,6 +20,7 @@
             </div>
 
             <div id="controls-hint" hidden></div>
+            <button id="heal-btn" class="heal-button" hidden>Heal</button>
 
             <div id="main-menu" class="menu-screen">
                 <h1>Hershey Super Power</h1>
@@ -63,7 +64,7 @@
                 <p><strong>Hershey:</strong> J and L to move, I to jump, U to punch</p>
                 <p><strong>Mars:</strong> 1 and 3 to move, 2 to jump, 4 to punch</p>
                 <p>Punch the other foods. Last snack standing wins.</p>
-                <p>Walk over a heart to heal 25 health.</p>
+                <p>Walk over a heart to heal 25 health. Or press the Heal button.</p>
                 <p>Press P to pause.</p>
                 <button id="how-back-btn" class="menu-button">Back</button>
             </div>
@@ -86,6 +87,6 @@
         </div>
     </div>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-    <script src="/food-fight/script.js"></script>
+    <script src="/food-fight/script.js?v=heal"></script>
 </body>
 </html>
