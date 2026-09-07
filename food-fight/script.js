@@ -155,6 +155,7 @@ let lastKeysAt = 0;
 let hearts = [];
 let heartWait = 0;
 let healReadyAt = 0;
+let healBits = [];
 
 let net = {
     role: 'offline',
@@ -295,12 +296,12 @@ function buildHud() {
 function buildHints() {
     const hint = document.getElementById('controls-hint');
     if (currentMatch.vsAi) {
-        hint.innerHTML = '<span>You are Coke: A D move, W jump, Space punch</span><span>Heal button or grab ♥</span><span>P pause</span>';
+        hint.innerHTML = '<span>You are Coke: A D move, W jump, Space punch</span><span>Heal button or grab sparkles</span><span>P pause</span>';
         return;
     }
     if (net.role !== 'offline' && fighters[net.myIndex]) {
         const mine = fighters[net.myIndex];
-        hint.innerHTML = `<span>You are ${mine.name}: A D move, W jump, Space punch</span><span>P pause</span>`;
+        hint.innerHTML = `<span>You are ${mine.name}: A D move, W jump, Space punch</span><span>Heal button or grab sparkles</span><span>P pause</span>`;
         return;
     }
     hint.innerHTML = fighters
@@ -347,6 +348,7 @@ function startMatch(match) {
     startDelay = 3000;
     lastTickAt = 0;
     clearHearts();
+    clearHealBits();
     heartWait = 0;
     updateHealthBars();
     hideMenus();
@@ -369,6 +371,13 @@ function updateHealthBars() {
     });
 }
 
+function makeOrbEl() {
+    const el = document.createElement('div');
+    el.className = 'heal-orb';
+    el.innerHTML = '<span class="orb-glow"></span><span class="orb-bit"></span><span class="orb-bit"></span><span class="orb-bit"></span><span class="orb-bit"></span><span class="orb-bit"></span>';
+    return el;
+}
+
 function clearHearts() {
     hearts.forEach((heart) => {
         if (heart.el) {
@@ -378,13 +387,61 @@ function clearHearts() {
     hearts = [];
 }
 
+function clearHealBits() {
+    healBits.forEach((bit) => {
+        if (bit.el) {
+            bit.el.remove();
+        }
+    });
+    healBits = [];
+}
+
+function spawnHealBurst(x, y) {
+    const colors = ['#ff4d6d', '#ffd100', '#ffffff', '#ff8fab', '#fff59a'];
+    for (let i = 0; i < 16; i += 1) {
+        const el = document.createElement('div');
+        el.className = 'heal-bit';
+        const size = 6 + Math.floor(Math.random() * 7);
+        el.style.width = `${size}px`;
+        el.style.height = `${size}px`;
+        el.style.background = colors[i % colors.length];
+        el.style.color = colors[i % colors.length];
+        const angle = ((Math.PI * 2) * i) / 16 + Math.random() * 0.5;
+        const speed = 2.2 + Math.random() * 3.6;
+        arena.appendChild(el);
+        healBits.push({
+            el,
+            x: x - size / 2,
+            y: y - size / 2,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 2.4,
+            life: 800
+        });
+    }
+}
+
+function updateHealBits(dt) {
+    healBits = healBits.filter((bit) => {
+        bit.life -= dt;
+        bit.x += bit.vx;
+        bit.y += bit.vy;
+        bit.vy += 0.12;
+        if (bit.life <= 0) {
+            bit.el.remove();
+            return false;
+        }
+        bit.el.style.left = `${bit.x}px`;
+        bit.el.style.top = `${bit.y}px`;
+        bit.el.style.opacity = String(Math.max(0, bit.life / 800));
+        return true;
+    });
+}
+
 function spawnHeart() {
     if (hearts.length >= MAX_HEARTS) {
         return;
     }
-    const el = document.createElement('div');
-    el.className = 'heal-heart';
-    el.textContent = '♥';
+    const el = makeOrbEl();
     const x = 90 + Math.random() * (ARENA_WIDTH - 220);
     const y = arena.clientHeight - FLOOR_HEIGHT - 64;
     el.style.left = `${x}px`;
@@ -393,8 +450,8 @@ function spawnHeart() {
     hearts.push({
         x,
         y,
-        width: 40,
-        height: 40,
+        width: 48,
+        height: 48,
         el
     });
 }
@@ -406,6 +463,7 @@ function healFighter(fighter, amount) {
     if (gained > 0) {
         updateHealthBars();
         showBanner(`+${gained} health!`, 50);
+        spawnHealBurst(fighter.x + fighter.width / 2, fighter.y + fighter.height / 3);
     }
     return gained;
 }
@@ -487,17 +545,15 @@ function drawHearts() {
 function syncHearts(list) {
     clearHearts();
     (list || []).forEach((item) => {
-        const el = document.createElement('div');
-        el.className = 'heal-heart';
-        el.textContent = '♥';
+        const el = makeOrbEl();
         el.style.left = `${item.x}px`;
         el.style.top = `${item.y}px`;
         arena.appendChild(el);
         hearts.push({
             x: item.x,
             y: item.y,
-            width: 40,
-            height: 40,
+            width: 48,
+            height: 48,
             el
         });
     });
@@ -939,6 +995,7 @@ function drawFighters() {
 function tick() {
     if (net.role === 'guest') {
         sendNetKeys();
+        updateHealBits(16);
         requestAnimationFrame(tick);
         return;
     }
@@ -974,6 +1031,7 @@ function tick() {
         fighters.forEach(faceNearest);
         fighters.forEach(updateCombat);
         updateHearts(dt);
+        updateHealBits(dt);
         drawFighters();
         drawHearts();
 
@@ -1194,6 +1252,9 @@ function applyNetState(data) {
         fighter.x = snap.x;
         fighter.y = snap.y;
         fighter.facing = snap.facing;
+        if (snap.health > fighter.health) {
+            spawnHealBurst(fighter.x + fighter.width / 2, fighter.y + fighter.height / 3);
+        }
         fighter.health = snap.health;
         fighter.punchTimer = snap.punchTimer;
         fighter.stun = snap.stun;
@@ -1389,6 +1450,7 @@ function goToMenu() {
     bannerEl.classList.remove('show');
     sparkEl.classList.remove('show');
     clearHearts();
+    clearHealBits();
     showScreen('main-menu');
 }
 
