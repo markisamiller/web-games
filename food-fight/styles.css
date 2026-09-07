@@ -473,6 +473,17 @@ h2 {
     box-shadow: 0 4px 0 #056328;
 }
 
+a.menu-button {
+    display: inline-block;
+    text-decoration: none;
+    text-align: center;
+}
+
+.home-button {
+    background: #5b3d8f;
+    box-shadow: 0 4px 0 #3b2560;
+}
+
 #join-code {
     width: 180px;
     margin: 0 0 12px;
