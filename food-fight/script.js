@@ -12,7 +12,7 @@ const GRAVITY = 0.7;
 const JUMP_POWER = 15;
 const WALK_SPEED = 5;
 const PUNCH_DAMAGE = 15;
-const ENEMY_DAMAGE = 5;
+const ENEMY_DAMAGE = 10;
 const PUNCH_TIME = 22;
 const PUNCH_HIT_START = 6;
 const PUNCH_HIT_END = 14;
@@ -97,37 +97,37 @@ const MATCHES = [
 
 const AI_STYLES = {
     pepsi: {
-        speed: 5.6,
-        punchRange: 82,
+        speed: 5.8,
+        punchRange: 100,
         jumpChance: 0.008,
-        punchDelay: 16,
-        attackGap: 60,
-        startThink: 8,
+        punchDelay: 12,
+        attackGap: 48,
+        startThink: 6,
         side: -1,
-        thinkMin: 28,
-        thinkMax: 55
+        thinkMin: 20,
+        thinkMax: 40
     },
     hershey: {
-        speed: 4.4,
-        punchRange: 96,
+        speed: 4.8,
+        punchRange: 110,
         jumpChance: 0.02,
-        punchDelay: 22,
-        attackGap: 54,
-        startThink: 36,
+        punchDelay: 14,
+        attackGap: 46,
+        startThink: 10,
         side: 1,
-        thinkMin: 18,
-        thinkMax: 42
+        thinkMin: 16,
+        thinkMax: 34
     },
     mars: {
-        speed: 3.4,
-        punchRange: 90,
+        speed: 4.2,
+        punchRange: 105,
         jumpChance: 0.01,
-        punchDelay: 28,
-        attackGap: 80,
-        startThink: 70,
+        punchDelay: 16,
+        attackGap: 52,
+        startThink: 14,
         side: 1,
-        thinkMin: 50,
-        thinkMax: 95
+        thinkMin: 22,
+        thinkMax: 44
     }
 };
 
@@ -702,54 +702,18 @@ function clampAiX(fighter, x) {
     return Math.max(20, Math.min(ARENA_WIDTH - fighter.width - 20, x));
 }
 
-function pickAiMode(fighter) {
-    const roll = Math.random();
-    if (fighter.id === 'pepsi') {
-        if (roll < 0.65) {
-            return 'chase';
-        }
-        return roll < 0.85 ? 'hold' : 'wait';
-    }
-    if (fighter.id === 'hershey') {
-        if (roll < 0.35) {
-            return 'chase';
-        }
-        if (roll < 0.7) {
-            return 'flank';
-        }
-        return roll < 0.85 ? 'hold' : 'wait';
-    }
-    if (roll < 0.25) {
-        return 'chase';
-    }
-    if (roll < 0.5) {
-        return 'flank';
-    }
-    return roll < 0.75 ? 'hold' : 'wait';
-}
-
 function thinkAi(fighter, player) {
     const style = fighter.ai.style;
-    const mode = pickAiMode(fighter);
     const playerCenter = player.x + player.width / 2;
-    fighter.ai.mode = mode;
+    fighter.ai.mode = Math.random() < 0.88 ? 'chase' : 'flank';
     fighter.ai.nextThink = style.thinkMin + Math.floor(Math.random() * (style.thinkMax - style.thinkMin));
 
-    if (mode === 'chase') {
-        fighter.ai.targetX = clampAiX(fighter, playerCenter + style.side * style.attackGap - fighter.width / 2);
-        return;
-    }
-    if (mode === 'flank') {
-        const gap = 170 + Math.floor(Math.random() * 90);
+    if (fighter.ai.mode === 'flank') {
+        const gap = 90 + Math.floor(Math.random() * 40);
         fighter.ai.targetX = clampAiX(fighter, playerCenter + style.side * gap - fighter.width / 2);
         return;
     }
-    if (mode === 'hold') {
-        const wander = fighter.x + (Math.random() - 0.5) * 220;
-        fighter.ai.targetX = clampAiX(fighter, wander);
-        return;
-    }
-    fighter.ai.targetX = fighter.x;
+    fighter.ai.targetX = clampAiX(fighter, playerCenter + style.side * style.attackGap - fighter.width / 2);
 }
 
 function controlAi(fighter) {
@@ -771,18 +735,22 @@ function controlAi(fighter) {
     const dist = Math.abs(theirCenter - myCenter);
     fighter.facing = theirCenter >= myCenter ? 1 : -1;
 
-    const toSpot = fighter.ai.targetX - fighter.x;
-    if (Math.abs(toSpot) > 12) {
-        fighter.vx = Math.sign(toSpot) * style.speed;
+    if (dist > style.punchRange - 10) {
+        fighter.vx = Math.sign(theirCenter - myCenter) * style.speed;
+    } else if (fighter.ai.mode === 'flank') {
+        const toSpot = fighter.ai.targetX - fighter.x;
+        if (Math.abs(toSpot) > 12) {
+            fighter.vx = Math.sign(toSpot) * style.speed;
+        }
     }
 
     const playerHigh = player.y + player.height < fighter.y + fighter.height - 10;
-    const duckPunch = player.punchTimer > 0 && player.facing === fighter.facing && dist < 120;
-    if (onGround(fighter) && (playerHigh || duckPunch || Math.random() < style.jumpChance)) {
+    const duckPunch = player.punchTimer > 0 && dist < 120;
+    if (onGround(fighter) && (playerHigh || duckPunch)) {
         fighter.vy = -JUMP_POWER;
     }
 
-    if (player.stun === 0 && dist < style.punchRange && fighter.cooldown === 0 && fighter.ai.timer <= 0) {
+    if (dist < style.punchRange && fighter.cooldown === 0 && fighter.ai.timer <= 0) {
         tryPunch(fighter);
         fighter.ai.timer = style.punchDelay;
     }
@@ -950,6 +918,14 @@ function updateCombat(attacker) {
 }
 
 function faceNearest(fighter) {
+    if (fighter.isAi) {
+        const player = getPlayer();
+        if (player && !player.down) {
+            fighter.facing = player.x + player.width / 2 >= fighter.x + fighter.width / 2 ? 1 : -1;
+        }
+        return;
+    }
+
     if (fighter.vx < 0) {
         fighter.facing = -1;
         return;
