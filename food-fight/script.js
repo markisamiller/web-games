@@ -21,6 +21,8 @@ const HIT_STUN = 18;
 const KNOCKBACK = 16;
 const KNOCKBACK_UP = 11;
 const KNOCKBACK_TIME = 22;
+const FLY_AWAY_X = 24;
+const FLY_AWAY_UP = 18;
 const MAX_HEALTH = 100;
 const ENEMY_HEALTH = 1;
 const HEAL_AMOUNT = 25;
@@ -234,6 +236,7 @@ function makeFighter(foodId, index, total, match) {
         hitIds: [],
         knockback: 0,
         down: false,
+        flyAway: false,
         isAi,
         team: (match && match.vsAi) ? (isAi ? 'enemy' : 'player') : food.id,
         ai: {
@@ -620,10 +623,17 @@ function landHit(attacker, defender) {
     defender.health -= damage;
     defender.stun = HIT_STUN;
     defender.punchTimer = 0;
-    defender.knockback = KNOCKBACK_TIME;
-    const power = attacker.isAi ? KNOCKBACK * 0.7 : KNOCKBACK;
-    defender.vx = attacker.facing * power;
-    defender.vy = attacker.isAi ? -7 : -KNOCKBACK_UP;
+    if (defender.isAi && !attacker.isAi) {
+        defender.flyAway = true;
+        defender.knockback = 80;
+        defender.vx = attacker.facing * FLY_AWAY_X;
+        defender.vy = -FLY_AWAY_UP;
+    } else {
+        defender.knockback = KNOCKBACK_TIME;
+        const power = attacker.isAi ? KNOCKBACK * 0.7 : KNOCKBACK;
+        defender.vx = attacker.facing * power;
+        defender.vy = attacker.isAi ? -7 : -KNOCKBACK_UP;
+    }
     attacker.hitIds.push(defender.id);
     sparkTimer = 8;
     sparkEl.style.left = `${defender.x + defender.width / 2}px`;
@@ -665,7 +675,6 @@ function checkWinner() {
 
 function endFight(champ) {
     fightEnding = true;
-    gameActive = false;
     winner = champ;
     updateHealthBars();
     if (currentMatch.vsAi && champ.isAi) {
@@ -683,8 +692,9 @@ function endFight(champ) {
         sendNetState(true);
     }
     setTimeout(() => {
+        gameActive = false;
         showScreen('win-screen');
-    }, 700);
+    }, 1400);
 }
 
 function readOnlineButtons() {
@@ -829,6 +839,16 @@ function applyOnlineInputs() {
 }
 
 function moveFighter(fighter) {
+    if (fighter.flyAway) {
+        fighter.x += fighter.vx;
+        fighter.vy += 0.26;
+        fighter.y += fighter.vy;
+        if (fighter.knockback > 0) {
+            fighter.knockback -= 1;
+        }
+        return;
+    }
+
     if (fighter.knockback > 0 || fighter.stun > 0) {
         fighter.x += fighter.vx;
         fighter.vy += GRAVITY;
@@ -979,6 +999,7 @@ function drawFighter(fighter) {
     el.classList.toggle('punching', fighter.punchTimer > 0);
     el.classList.toggle('hurt', fighter.stun > 0);
     el.classList.toggle('down', fighter.down);
+    el.classList.toggle('fly-away', fighter.flyAway);
 }
 
 function drawFighters() {

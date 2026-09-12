@@ -330,6 +330,16 @@ body {
     transform: rotate(90deg);
 }
 
+.fighter.fly-away {
+    animation: fly-spin 0.35s linear infinite;
+}
+
+@keyframes fly-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 .fighter .name-tag {
     position: absolute;
     left: 50%;
