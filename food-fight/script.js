@@ -27,6 +27,7 @@ const HEAL_AMOUNT = 25;
 const HEART_WAIT = 4000;
 const MAX_HEARTS = 2;
 const HEAL_COOLDOWN = 4000;
+const AI_JUMP_WAIT = 1000;
 
 const FOODS = {
     coke: {
@@ -238,6 +239,7 @@ function makeFighter(foodId, index, total, match) {
         ai: {
             timer: style.startThink,
             nextThink: style.startThink,
+            jumpAt: Date.now() + 200 + index * 220,
             targetX: startX(index, total, food.width, match),
             mode: 'hold',
             style
@@ -702,6 +704,17 @@ function clampAiX(fighter, x) {
     return Math.max(20, Math.min(ARENA_WIDTH - fighter.width - 20, x));
 }
 
+function tryAiHop(fighter) {
+    if (!onGround(fighter) || fighter.down || fighter.stun > 0 || fighter.knockback > 0) {
+        return;
+    }
+    if (Date.now() < fighter.ai.jumpAt) {
+        return;
+    }
+    fighter.vy = -JUMP_POWER;
+    fighter.ai.jumpAt = Date.now() + AI_JUMP_WAIT;
+}
+
 function thinkAi(fighter, player) {
     const style = fighter.ai.style;
     const playerCenter = player.x + player.width / 2;
@@ -744,11 +757,7 @@ function controlAi(fighter) {
         }
     }
 
-    const playerHigh = player.y + player.height < fighter.y + fighter.height - 10;
-    const duckPunch = player.punchTimer > 0 && dist < 120;
-    if (onGround(fighter) && (playerHigh || duckPunch)) {
-        fighter.vy = -JUMP_POWER;
-    }
+    tryAiHop(fighter);
 
     if (dist < style.punchRange && fighter.cooldown === 0 && fighter.ai.timer <= 0) {
         tryPunch(fighter);
@@ -757,16 +766,24 @@ function controlAi(fighter) {
 }
 
 function controlFighter(fighter) {
-    if (fighter.down || fighter.stun > 0 || fighter.knockback > 0 || fighter.punchTimer > 0) {
+    if (fighter.down || fighter.stun > 0 || fighter.knockback > 0) {
+        return;
+    }
+
+    if (fighter.isAi && net.role === 'offline') {
+        if (fighter.punchTimer > 0) {
+            tryAiHop(fighter);
+            return;
+        }
+        controlAi(fighter);
+        return;
+    }
+
+    if (fighter.punchTimer > 0) {
         return;
     }
 
     fighter.vx = 0;
-
-    if (fighter.isAi && net.role === 'offline') {
-        controlAi(fighter);
-        return;
-    }
 
     if (net.role === 'host') {
         const input = fighter.onlineInput || EMPTY_INPUT;
