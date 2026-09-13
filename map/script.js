@@ -52,13 +52,17 @@ function makeRoundMesh(geometry, color) {
     return mesh;
 }
 
-function makeSmoothLimb(radius, height, color, tipColor, tipSize) {
+function makeSoftBox(width, height, depth, color) {
+    const mesh = makeBox(width, height, depth, color);
+    return mesh;
+}
+
+function makeBlockLimb(width, height, depth, color, tipColor, tipHeight, tipDepth) {
     const pivot = new THREE.Group();
-    const mid = Math.max(0.08, height - radius * 2);
-    const mesh = makeRoundMesh(new THREE.CapsuleGeometry(radius, mid, 6, 14), color);
+    const mesh = makeSoftBox(width, height, depth, color);
     mesh.position.y = -height / 2;
-    const tip = makeRoundMesh(new THREE.SphereGeometry(tipSize, 14, 12), tipColor);
-    tip.position.y = -height + tipSize * 0.25;
+    const tip = makeSoftBox(width * 1.08, tipHeight, tipDepth, tipColor);
+    tip.position.y = -height - tipHeight / 2 + 0.03;
     pivot.add(mesh, tip);
     return pivot;
 }
@@ -71,11 +75,10 @@ function makePlayer() {
     const gold = 0xd4a017;
     const lens = 0x2b1a3a;
 
-    const torso = makeRoundMesh(new THREE.CapsuleGeometry(0.34, 0.42, 6, 16), black);
-    torso.scale.set(1.55, 1, 0.95);
+    const torso = makeSoftBox(1.05, 1.05, 0.58, black);
     torso.position.y = 1.42;
-    const zipper = makeRoundMesh(new THREE.CylinderGeometry(0.025, 0.025, 0.7, 8), 0x3a3a3a);
-    zipper.position.set(0, 1.42, 0.34);
+    const zipper = makeSoftBox(0.05, 0.8, 0.06, 0x2c2c2c);
+    zipper.position.set(0, 1.42, 0.3);
 
     const head = new THREE.Group();
     const skull = makeRoundMesh(new THREE.SphereGeometry(0.5, 20, 20), skin);
@@ -112,15 +115,15 @@ function makePlayer() {
     head.add(skull, hairCap, hairFront, hairLeft, hairRight, glasses, smile);
     head.position.y = 2.22;
 
-    const leftArm = makeSmoothLimb(0.16, 0.95, black, skin, 0.17);
-    leftArm.position.set(-0.58, 1.82, 0);
-    const rightArm = makeSmoothLimb(0.16, 0.95, black, skin, 0.17);
-    rightArm.position.set(0.58, 1.82, 0);
+    const leftArm = makeBlockLimb(0.38, 0.95, 0.38, black, skin, 0.24, 0.38);
+    leftArm.position.set(-0.72, 1.88, 0);
+    const rightArm = makeBlockLimb(0.38, 0.95, 0.38, black, skin, 0.24, 0.38);
+    rightArm.position.set(0.72, 1.88, 0);
 
-    const leftLeg = makeSmoothLimb(0.17, 0.82, black, skin, 0.2);
-    leftLeg.position.set(-0.22, 0.92, 0);
-    const rightLeg = makeSmoothLimb(0.17, 0.82, black, skin, 0.2);
-    rightLeg.position.set(0.22, 0.92, 0);
+    const leftLeg = makeBlockLimb(0.4, 0.78, 0.4, black, skin, 0.22, 0.58);
+    leftLeg.position.set(-0.24, 0.9, 0);
+    const rightLeg = makeBlockLimb(0.4, 0.78, 0.4, black, skin, 0.22, 0.58);
+    rightLeg.position.set(0.24, 0.9, 0);
 
     body.add(torso, zipper, head, leftArm, rightArm, leftLeg, rightLeg);
     body.position.set(0, 0, 16);
