@@ -205,28 +205,19 @@ function makeViewHands() {
     const skin = 0xfbfbfb;
     const black = 0x0a0a0a;
 
-    function makeHand(side) {
+    function makeWaveHand(side) {
         const group = new THREE.Group();
-        const sleeve = makeSoftBox(0.16, 0.58, 0.14, black, 0.03);
-        sleeve.position.set(side * 0.02, 0.06, 0);
-        const palm = makeSoftBox(0.08, 0.07, 0.034, skin, 0.012);
-        palm.position.set(side * -0.05, -0.18, -0.06);
-        palm.rotation.x = 0.12;
-        palm.rotation.y = side * -0.22;
-        palm.rotation.z = side * 0.28;
+        const sleeve = makeSoftBox(0.07, 0.16, 0.07, black, 0.02);
+        sleeve.position.y = -0.05;
+        const palm = makeSoftBox(0.09, 0.08, 0.04, skin, 0.015);
+        palm.position.set(0, 0.07, -0.02);
         group.add(sleeve, palm);
-        group.position.set(side * 0.4, -0.04, -0.38);
+        group.position.set(side * 0.18, 0.28, -0.4);
         return group;
     }
 
-    const left = makeHand(-1);
-    const right = new THREE.Group();
-    const waveSleeve = makeSoftBox(0.07, 0.16, 0.07, black, 0.02);
-    waveSleeve.position.y = -0.05;
-    const wavePalm = makeSoftBox(0.09, 0.08, 0.04, skin, 0.015);
-    wavePalm.position.set(0, 0.07, -0.02);
-    right.add(waveSleeve, wavePalm);
-    right.position.set(0, 0.26, -0.42);
+    const left = makeWaveHand(-1);
+    const right = makeWaveHand(1);
     hands.add(left, right);
     hands.userData = { left, right };
     return hands;
@@ -726,10 +717,8 @@ if (typeof THREE === 'undefined') {
         const headY = player.position.y + 2.14;
         if (first) {
             const walk = player.userData.walk;
-            const handAngle = playerState.sprinting ? SPRINT_HAND_ANGLE : 0;
             viewHands.position.set(Math.cos(walk) * 0.012, Math.sin(walk) * 0.018, 0);
             viewHands.rotation.set(0, 0, 0);
-            viewHands.userData.left.rotation.set(handAngle, 0, 0);
             const pitch = lookPitch;
             const lookX = Math.sin(rot) * Math.cos(pitch);
             const lookY = Math.sin(pitch);
@@ -802,26 +791,25 @@ if (typeof THREE === 'undefined') {
     }
 
     function updateWave() {
-        const swing = Math.sin(Date.now() / 260);
-        const arm = player.userData.rightArm;
-        arm.rotation.x = -Math.PI + swing * 1.05;
-        arm.rotation.y = 0.12;
-        arm.rotation.z = 0.5;
-        const hand = viewHands.userData.right;
-        hand.position.set(0.1, 0.2 + swing * 0.04, -0.18 - swing * 0.3);
-        hand.rotation.set(0.2 - swing * 0.4, 0, swing * 0.25);
+        const wave = Math.sin(Date.now() / 140);
+        player.userData.leftArm.rotation.set(-2.85, 0, -0.4 + wave * 0.6);
+        player.userData.rightArm.rotation.set(-2.85, 0, 0.4 - wave * 0.6);
+        viewHands.userData.left.position.set(-0.18 + wave * 0.08, 0.28, -0.4);
+        viewHands.userData.right.position.set(0.18 - wave * 0.08, 0.28, -0.4);
+        viewHands.userData.left.rotation.set(0.1, 0, wave * 0.5);
+        viewHands.userData.right.rotation.set(0.1, 0, -wave * 0.5);
     }
 
     let last = 0;
     function tick(now) {
         const dt = last ? Math.min(40, now - last) : 16;
         last = now;
-        updateWave();
         if (playing) {
             updatePlayer();
             grabStars();
             checkDoors(dt);
         }
+        updateWave();
         updateCamera();
         renderer.render(scene, camera);
         requestAnimationFrame(tick);
