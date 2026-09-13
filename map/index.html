@@ -3,44 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Map</title>
-    <link rel="stylesheet" href="/map/styles.css?v=1">
+    <title>Home World</title>
+    <link rel="stylesheet" href="/map/styles.css?v=3d1">
 </head>
 <body>
-    <div class="map-wrap">
-        <div class="map">
-            <h1>Game Map</h1>
-            <p class="hint">Click a place to play.</p>
-
-            <div class="land">
-                <div class="path"></div>
-
-                <a class="spot mscape" href="/">
-                    <span class="icon">m</span>
-                    <span class="name">The Great Mscape</span>
-                    <span class="blurb">Jump and run</span>
-                </a>
-
-                <a class="spot fight" href="/food-fight">
-                    <span class="icon">♥</span>
-                    <span class="name">Hershey Super Power</span>
-                    <span class="blurb">Snack fight</span>
-                </a>
+    <div class="game-wrap">
+        <div id="game">
+            <div id="view"></div>
+            <div id="hud">
+                <span id="score">Stars: 0 / 8</span>
+                <span id="hint">W A S D move, Space jump</span>
+            </div>
+            <div id="door-label" hidden></div>
+            <div id="start-screen" class="panel">
+                <h1>Home World</h1>
+                <p>A new 3D game. Walk, jump, and grab stars.</p>
+                <p>Walk into a glowing door to play another game.</p>
+                <button id="play-btn" type="button">Play</button>
             </div>
         </div>
     </div>
-    <script>
-        function fitMap() {
-            const wrap = document.querySelector('.map-wrap');
-            const scale = Math.min(
-                (window.innerWidth - 24) / 1000,
-                (window.innerHeight - 24) / 560,
-                1
-            );
-            wrap.style.transform = `scale(${scale})`;
-        }
-        fitMap();
-        window.addEventListener('resize', fitMap);
-    </script>
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+    <script src="/map/script.js?v=3d1"></script>
 </body>
 </html>
