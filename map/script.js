@@ -486,28 +486,45 @@ if (typeof THREE === 'undefined') {
     updateCity();
 
     function updatePlayer() {
+        const rot = player.rotation.y;
+        const forwardX = Math.sin(rot);
+        const forwardZ = -Math.cos(rot);
+        const rightX = Math.cos(rot);
+        const rightZ = Math.sin(rot);
+
+        let moveX = 0;
+        let moveZ = 0;
         if (keys.KeyA || keys.ArrowLeft) {
-            player.rotation.y += TURN_SPEED;
+            moveX -= rightX;
+            moveZ -= rightZ;
+        }
+        if (keys.KeyW) {
+            moveX += rightX;
+            moveZ += rightZ;
         }
         if (keys.KeyD || keys.ArrowRight) {
-            player.rotation.y -= TURN_SPEED;
-        }
-
-        let move = 0;
-        if (keys.KeyW || keys.ArrowUp) {
-            move += 1;
+            moveX += forwardX;
+            moveZ += forwardZ;
         }
         if (keys.KeyS || keys.ArrowDown) {
-            move -= 1;
+            moveX -= forwardX;
+            moveZ -= forwardZ;
         }
-        if (move !== 0) {
-            player.position.x += Math.sin(player.rotation.y) * MOVE_SPEED * move;
-            player.position.z -= Math.cos(player.rotation.y) * MOVE_SPEED * move;
+        if (keys.ArrowUp) {
+            moveX += forwardX;
+            moveZ += forwardZ;
+        }
+
+        const moving = moveX !== 0 || moveZ !== 0;
+        if (moving) {
+            const length = Math.hypot(moveX, moveZ) || 1;
+            player.position.x += (moveX / length) * MOVE_SPEED;
+            player.position.z += (moveZ / length) * MOVE_SPEED;
             player.userData.walk += 0.22;
         } else {
             player.userData.walk *= 0.85;
         }
-        const swing = Math.sin(player.userData.walk) * (move !== 0 ? 0.7 : 0.08);
+        const swing = Math.sin(player.userData.walk) * (moving ? 0.7 : 0.08);
         player.userData.leftArm.rotation.x = swing;
         player.userData.rightArm.rotation.x = -swing;
         player.userData.leftLeg.rotation.x = -swing;
@@ -536,8 +553,8 @@ if (typeof THREE === 'undefined') {
             return;
         }
         hintEl.textContent = viewMode === 'first'
-            ? 'Hold right click to look. Press 2 for second person.'
-            : 'Hold right click to look. Press 1 for first person.';
+            ? 'A left, W right, D forward. Hold right click to look. Press 2 for second person.'
+            : 'A left, W right, D forward. Hold right click to look. Press 1 for first person.';
     }
 
     function updateCamera() {
