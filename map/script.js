@@ -205,15 +205,15 @@ function makeViewHands() {
 
     function makeHand(side) {
         const group = new THREE.Group();
-        const sleeve = makeSoftBox(0.05, 0.06, 0.1, black, 0.012);
-        sleeve.position.set(0, 0.03, 0.05);
-        const palm = makeSoftBox(0.055, 0.045, 0.07, skin, 0.015);
-        palm.position.set(0, -0.008, -0.02);
+        const sleeve = makeSoftBox(0.22, 0.055, 0.07, black, 0.015);
+        sleeve.position.set(side * -0.06, 0.01, 0.02);
+        const palm = makeSoftBox(0.07, 0.05, 0.07, skin, 0.015);
+        palm.position.set(side * 0.08, 0, -0.01);
         group.add(sleeve, palm);
-        group.position.set(side * 0.34, -0.17, -0.5);
-        group.rotation.x = 0.55;
-        group.rotation.y = side * 0.28;
-        group.rotation.z = side * -0.06;
+        group.position.set(side * 0.5, -0.2, -0.5);
+        group.rotation.x = 0.2;
+        group.rotation.y = side * 0.08;
+        group.rotation.z = side * 0.05;
         return group;
     }
 
