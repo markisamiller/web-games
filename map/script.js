@@ -7,13 +7,21 @@ const TURN_SPEED = 0.045;
 const JUMP_POWER = 0.28;
 const GRAVITY = 0.012;
 const STAR_COUNT = 8;
+const PUBLIC_SERVER = 'homeworld-public-main';
+const ROOM_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+const MAX_PLAYERS = 8;
 
 const keys = {};
 const scoreEl = document.getElementById('score');
 const hintEl = document.getElementById('hint');
+const netStatusEl = document.getElementById('net-status');
+const onlineErrorEl = document.getElementById('online-error');
 const doorLabel = document.getElementById('door-label');
 const startScreen = document.getElementById('start-screen');
 const playBtn = document.getElementById('play-btn');
+const hostRoomBtn = document.getElementById('host-room-btn');
+const joinRoomBtn = document.getElementById('join-room-btn');
+const joinCodeInput = document.getElementById('join-code');
 const viewEl = document.getElementById('view');
 
 let playing = false;
@@ -468,6 +476,17 @@ if (typeof THREE === 'undefined') {
     const player = makePlayer();
     scene.add(player);
     const playerState = { vy: 0, onGround: true, onLadder: false, spaceClimb: false, sprinting: false };
+    const remotes = new Map();
+    let net = {
+        role: 'offline',
+        code: '',
+        peer: null,
+        conns: [],
+        hostConn: null,
+        poses: new Map(),
+        myId: '',
+        lastSend: 0
+    };
 
     const doors = [
         makeDoor(-8, 8, 0xc8102e, 'The Great Mscape', '/'),
@@ -790,10 +809,315 @@ if (typeof THREE === 'undefined') {
         }
     }
 
+    function setNetStatus(text) {
+        netStatusEl.textContent = text;
+    }
+
+    function setOnlineError(text) {
+        onlineErrorEl.textContent = text;
+    }
+
+    function makeRoomCode() {
+        let code = '';
+        for (let i = 0; i < 4; i += 1) {
+            code += ROOM_CHARS[Math.floor(Math.random() * ROOM_CHARS.length)];
+        }
+        return code;
+    }
+
+    function roomPeerId(code) {
+        return `homeworld-${code}`;
+    }
+
+    function myPose() {
+        return {
+            id: net.myId,
+            x: player.position.x,
+            y: player.position.y,
+            z: player.position.z,
+            rotY: player.rotation.y
+        };
+    }
+
+    function sendTo(conn, payload) {
+        if (conn && conn.open) {
+            conn.send(payload);
+        }
+    }
+
+    function broadcast(payload) {
+        net.conns.forEach((conn) => sendTo(conn, payload));
+    }
+
+    function closeNet() {
+        net.conns.forEach((conn) => {
+            try {
+                conn.close();
+            } catch (err) {
+                // ignore
+            }
+        });
+        if (net.hostConn) {
+            try {
+                net.hostConn.close();
+            } catch (err) {
+                // ignore
+            }
+        }
+        if (net.peer) {
+            try {
+                net.peer.destroy();
+            } catch (err) {
+                // ignore
+            }
+        }
+        remotes.forEach((body) => scene.remove(body));
+        remotes.clear();
+        net = {
+            role: 'offline',
+            code: '',
+            peer: null,
+            conns: [],
+            hostConn: null,
+            poses: new Map(),
+            myId: '',
+            lastSend: 0
+        };
+        setNetStatus('Playing alone');
+    }
+
+    function getRemote(id) {
+        if (remotes.has(id)) {
+            return remotes.get(id);
+        }
+        const body = makePlayer();
+        scene.add(body);
+        remotes.set(id, body);
+        return body;
+    }
+
+    function applyWorld(players) {
+        const seen = new Set();
+        players.forEach((pose) => {
+            if (!pose || pose.id === net.myId) {
+                return;
+            }
+            seen.add(pose.id);
+            const body = getRemote(pose.id);
+            body.position.set(pose.x, pose.y, pose.z);
+            body.rotation.y = pose.rotY;
+        });
+        remotes.forEach((body, id) => {
+            if (!seen.has(id)) {
+                scene.remove(body);
+                remotes.delete(id);
+            }
+        });
+        const count = players.length;
+        if (net.code === 'PUBLIC') {
+            setNetStatus(count <= 1 ? 'City server: waiting for friends' : `City server: ${count} players`);
+        } else {
+            setNetStatus(count <= 1 ? `Room ${net.code}: waiting` : `Room ${net.code}: ${count} players`);
+        }
+    }
+
+    function hostWorld() {
+        const players = [myPose()];
+        net.poses.forEach((pose, id) => {
+            players.push({ id, x: pose.x, y: pose.y, z: pose.z, rotY: pose.rotY });
+        });
+        applyWorld(players);
+        broadcast({ type: 'world', players });
+    }
+
+    function setupHostConnection(conn) {
+        conn.on('open', () => {
+            if (net.conns.length + 1 >= MAX_PLAYERS) {
+                sendTo(conn, { type: 'full' });
+                conn.close();
+                return;
+            }
+            net.conns.push(conn);
+            net.poses.set(conn.peer, {
+                x: player.position.x + 2,
+                y: 0,
+                z: player.position.z
+            });
+            hostWorld();
+        });
+        conn.on('data', (data) => {
+            if (!data || data.type !== 'pose') {
+                return;
+            }
+            net.poses.set(conn.peer, {
+                x: data.x,
+                y: data.y,
+                z: data.z,
+                rotY: data.rotY
+            });
+        });
+        conn.on('close', () => {
+            net.conns = net.conns.filter((item) => item !== conn);
+            net.poses.delete(conn.peer);
+            hostWorld();
+        });
+    }
+
+    function becomeHost(peer, code) {
+        net.role = 'host';
+        net.code = code;
+        net.peer = peer;
+        net.myId = 'host';
+        net.conns = [];
+        net.poses = new Map();
+        peer.on('connection', setupHostConnection);
+        if (code === 'PUBLIC') {
+            setNetStatus('City server: you are in. Waiting for friends');
+        } else {
+            setNetStatus(`Room ${code}: share this code`);
+        }
+        setOnlineError('');
+    }
+
+    function becomeGuest(hostId, code) {
+        const peer = new Peer();
+        net.role = 'guest';
+        net.code = code;
+        net.peer = peer;
+        peer.on('open', () => {
+            net.myId = peer.id;
+            const conn = peer.connect(hostId, { reliable: true });
+            net.hostConn = conn;
+            conn.on('open', () => {
+                setOnlineError('');
+                player.position.x += 2 + Math.random() * 2;
+                player.position.z += (Math.random() - 0.5) * 2;
+                if (code === 'PUBLIC') {
+                    setNetStatus('Joined the city server');
+                } else {
+                    setNetStatus(`Joined room ${code}`);
+                }
+            });
+            conn.on('data', (data) => {
+                if (!data || !data.type) {
+                    return;
+                }
+                if (data.type === 'world') {
+                    applyWorld(data.players || []);
+                }
+                if (data.type === 'full') {
+                    setOnlineError('That server is full.');
+                    closeNet();
+                }
+            });
+            conn.on('close', () => {
+                if (net.role !== 'guest') {
+                    return;
+                }
+                setNetStatus('Host left. Rejoining...');
+                remotes.forEach((body) => scene.remove(body));
+                remotes.clear();
+                if (code === 'PUBLIC') {
+                    setTimeout(() => joinPublicWorld(), 600);
+                } else {
+                    closeNet();
+                    setOnlineError('The host left.');
+                }
+            });
+        });
+        peer.on('error', () => {
+            setOnlineError('Could not find that server.');
+            closeNet();
+        });
+    }
+
+    function startHost(hostId, code) {
+        if (typeof Peer === 'undefined') {
+            setNetStatus('Playing alone');
+            setOnlineError('Could not load online play.');
+            return;
+        }
+        closeNet();
+        const peer = new Peer(hostId);
+        peer.on('open', () => {
+            becomeHost(peer, code);
+        });
+        peer.on('error', (err) => {
+            if (err.type === 'unavailable-id' && code === 'PUBLIC') {
+                try {
+                    peer.destroy();
+                } catch (ignore) {
+                    // ignore
+                }
+                becomeGuest(hostId, code);
+                return;
+            }
+            if (err.type === 'unavailable-id') {
+                const next = makeRoomCode();
+                startHost(roomPeerId(next), next);
+                return;
+            }
+            setOnlineError('Could not start the server.');
+            closeNet();
+        });
+    }
+
+    function joinPublicWorld() {
+        setOnlineError('Joining the city server...');
+        setNetStatus('Joining the city server...');
+        startHost(PUBLIC_SERVER, 'PUBLIC');
+    }
+
+    function hostPrivateRoom() {
+        const code = makeRoomCode();
+        setOnlineError(`Making room ${code}...`);
+        startHost(roomPeerId(code), code);
+        beginPlay();
+    }
+
+    function joinPrivateRoom() {
+        const code = joinCodeInput.value.trim().toUpperCase();
+        if (code.length !== 4) {
+            setOnlineError('Type the 4-letter room code.');
+            return;
+        }
+        if (typeof Peer === 'undefined') {
+            setOnlineError('Could not load online play.');
+            return;
+        }
+        setOnlineError(`Joining ${code}...`);
+        closeNet();
+        becomeGuest(roomPeerId(code), code);
+        beginPlay();
+    }
+
+    function syncNet(now) {
+        if (net.role === 'offline' || now - net.lastSend < 50) {
+            return;
+        }
+        net.lastSend = now;
+        if (net.role === 'host') {
+            hostWorld();
+        }
+        if (net.role === 'guest') {
+            sendTo(net.hostConn, Object.assign({ type: 'pose' }, myPose()));
+        }
+    }
+
+    function beginPlay() {
+        playing = true;
+        startScreen.hidden = true;
+        viewEl.querySelector('canvas').focus();
+    }
+
     function updateWave() {
         const wave = Math.sin(Date.now() / 140);
-        player.userData.leftArm.rotation.set(-2.85, 0, -0.4 + wave * 0.6);
-        player.userData.rightArm.rotation.set(-2.85, 0, 0.4 - wave * 0.6);
+        function waveBody(body) {
+            body.userData.leftArm.rotation.set(-2.85, 0, -0.4 + wave * 0.6);
+            body.userData.rightArm.rotation.set(-2.85, 0, 0.4 - wave * 0.6);
+        }
+        waveBody(player);
+        remotes.forEach((body) => waveBody(body));
         viewHands.userData.left.position.set(-0.18 + wave * 0.08, 0.28, -0.4);
         viewHands.userData.right.position.set(0.18 - wave * 0.08, 0.28, -0.4);
         viewHands.userData.left.rotation.set(0.1, 0, wave * 0.5);
@@ -808,6 +1132,7 @@ if (typeof THREE === 'undefined') {
             updatePlayer();
             grabStars();
             checkDoors(dt);
+            syncNet(now);
         }
         updateWave();
         updateCamera();
@@ -816,9 +1141,15 @@ if (typeof THREE === 'undefined') {
     }
 
     playBtn.addEventListener('click', () => {
-        playing = true;
-        startScreen.hidden = true;
-        viewEl.querySelector('canvas').focus();
+        beginPlay();
+        joinPublicWorld();
+    });
+    hostRoomBtn.addEventListener('click', hostPrivateRoom);
+    joinRoomBtn.addEventListener('click', joinPrivateRoom);
+    joinCodeInput.addEventListener('keydown', (event) => {
+        if (event.code === 'Enter') {
+            joinPrivateRoom();
+        }
     });
 
     window.addEventListener('keydown', (event) => {

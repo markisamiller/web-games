@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home World</title>
-    <link rel="stylesheet" href="/map/styles.css?v=city20">
+    <link rel="stylesheet" href="/map/styles.css?v=city22">
 </head>
 <body>
     <div class="game-wrap">
@@ -12,7 +12,8 @@
             <div id="view"></div>
             <div id="hud">
                 <span id="score">Stars: 0 / 8</span>
-                <span id="hint">Hold Shift to sprint. Walk to a ladder and press Space to climb.</span>
+                <span id="net-status">Playing alone</span>
+                <span id="hint">Shift sprint. Space climb.</span>
             </div>
             <div id="door-label" hidden></div>
             <div id="start-screen" class="panel">
@@ -24,11 +25,19 @@
                 <p>Hold the right mouse button and move to look around.</p>
                 <p>Some buildings have brown ladders. Walk into one and press Space or W to climb onto the roof.</p>
                 <p>Walk into a glowing door to play another game.</p>
+                <p>Anyone can join the city server. Press Play to go in.</p>
                 <button id="play-btn" type="button">Play</button>
+                <p class="or-line">or make a private room</p>
+                <button id="host-room-btn" type="button">Make Room</button>
+                <p class="or-line">or join a friend's room</p>
+                <input id="join-code" type="text" maxlength="4" placeholder="CODE" autocomplete="off" spellcheck="false">
+                <button id="join-room-btn" type="button">Join Room</button>
+                <p id="online-error"></p>
             </div>
         </div>
     </div>
     <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-    <script src="/map/script.js?v=city20"></script>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="/map/script.js?v=city22"></script>
 </body>
 </html>

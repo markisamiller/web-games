@@ -44,11 +44,43 @@ body {
     z-index: 3;
     display: flex;
     justify-content: space-between;
+    gap: 12px;
     padding: 12px 16px;
     background: linear-gradient(rgba(8, 20, 28, 0.7), transparent);
     font-weight: bold;
     text-shadow: 0 2px 0 #000;
     pointer-events: none;
+}
+
+#net-status {
+    color: #9ee6ff;
+}
+
+.or-line {
+    margin-top: 14px;
+    font-size: 16px;
+    color: #c8d4de;
+}
+
+#join-code {
+    width: 120px;
+    margin-top: 8px;
+    padding: 10px 12px;
+    border: 3px solid #fff;
+    border-radius: 10px;
+    background: #10202c;
+    color: #fff;
+    font-size: 22px;
+    font-weight: bold;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+}
+
+#online-error {
+    min-height: 24px;
+    color: #ffd100;
+    font-size: 18px;
 }
 
 #door-label {
