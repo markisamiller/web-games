@@ -651,7 +651,6 @@ if (typeof THREE === 'undefined') {
 
         if (near && (wantUp || wantDown || midClimb) && (!atRoof || wantDown) && player.position.y <= near.top + 0.12) {
             playerState.onLadder = true;
-            playerState.sprinting = false;
             if (keys.Space) {
                 playerState.spaceClimb = true;
             }
@@ -708,22 +707,23 @@ if (typeof THREE === 'undefined') {
         }
 
         const moving = moveX !== 0 || moveZ !== 0;
-        const sprinting = moving && (keys.ShiftLeft || keys.ShiftRight);
-        playerState.sprinting = sprinting;
-        const speed = sprinting ? SPRINT_SPEED : MOVE_SPEED;
+        const sprinting = playerState.sprinting;
+        const speed = moving && sprinting ? SPRINT_SPEED : MOVE_SPEED;
+        if (sprinting) {
+            player.userData.walk += 0.38;
+        } else if (moving) {
+            player.userData.walk += 0.18;
+        } else {
+            player.userData.walk *= 0.85;
+        }
         if (moving) {
             const length = Math.hypot(moveX, moveZ) || 1;
             player.position.x += (moveX / length) * speed;
             player.position.z += (moveZ / length) * speed;
-            player.userData.walk += sprinting ? 0.38 : 0.22;
-        } else {
-            player.userData.walk *= 0.85;
         }
-        const swing = Math.sin(player.userData.walk) * (moving ? (sprinting ? 1.05 : 0.7) : 0.08);
-        player.userData.leftArm.rotation.x = swing;
-        player.userData.rightArm.rotation.x = -swing;
-        player.userData.leftLeg.rotation.x = -swing;
-        player.userData.rightLeg.rotation.x = swing;
+        const legSwing = Math.sin(player.userData.walk) * (moving ? (sprinting ? 1.05 : 0.5) : 0);
+        player.userData.leftLeg.rotation.x = -legSwing;
+        player.userData.rightLeg.rotation.x = legSwing;
 
         if (!keys.Space) {
             playerState.spaceClimb = false;
@@ -753,9 +753,13 @@ if (typeof THREE === 'undefined') {
             hintEl.textContent = 'You got every star!';
             return;
         }
+        if (playerState.sprinting) {
+            hintEl.textContent = 'Sprint on. Press Shift again to stop swinging and running.';
+            return;
+        }
         hintEl.textContent = viewMode === 'first'
-            ? 'Hold Shift to sprint. Walk to a ladder and press Space to climb. Press 2 for second person.'
-            : 'Hold Shift to sprint. Walk to a ladder and press Space to climb. Press 1 for first person.';
+            ? 'Press Shift to sprint and swing your arms. Press Shift again to stop. Press 2 for second person.'
+            : 'Press Shift to sprint and swing your arms. Press Shift again to stop. Press 1 for first person.';
     }
 
     function updateCamera() {
@@ -870,7 +874,8 @@ if (typeof THREE === 'undefined') {
             z: player.position.z,
             rotY: player.rotation.y,
             headY: player.userData.head.rotation.y,
-            headX: player.userData.head.rotation.x
+            headX: player.userData.head.rotation.x,
+            sprint: playerState.sprinting
         };
     }
 
@@ -943,6 +948,7 @@ if (typeof THREE === 'undefined') {
             body.rotation.y = pose.rotY || 0;
             body.userData.head.rotation.y = pose.headY || 0;
             body.userData.head.rotation.x = pose.headX || 0;
+            body.userData.sprint = !!pose.sprint;
         });
         remotes.forEach((body, id) => {
             if (!seen.has(id)) {
@@ -968,7 +974,8 @@ if (typeof THREE === 'undefined') {
                 z: pose.z,
                 rotY: pose.rotY,
                 headY: pose.headY,
-                headX: pose.headX
+                headX: pose.headX,
+                sprint: pose.sprint
             });
         });
         applyWorld(players);
@@ -1000,7 +1007,8 @@ if (typeof THREE === 'undefined') {
                 z: data.z,
                 rotY: data.rotY,
                 headY: data.headY,
-                headX: data.headX
+                headX: data.headX,
+                sprint: data.sprint
             });
         });
         conn.on('close', () => {
@@ -1157,18 +1165,41 @@ if (typeof THREE === 'undefined') {
         viewEl.querySelector('canvas').focus();
     }
 
-    function updateWave() {
-        const wave = Math.sin(Date.now() / 140);
-        function waveBody(body) {
-            body.userData.leftArm.rotation.set(-2.85, 0, -0.4 + wave * 0.6);
-            body.userData.rightArm.rotation.set(-2.85, 0, 0.4 - wave * 0.6);
+    function swingArms(body, swinging, walk) {
+        if (swinging) {
+            const swing = Math.sin(walk) * 1.2;
+            body.userData.leftArm.rotation.set(swing, 0, 0);
+            body.userData.rightArm.rotation.set(-swing, 0, 0);
+        } else {
+            body.userData.leftArm.rotation.set(0, 0, 0);
+            body.userData.rightArm.rotation.set(0, 0, 0);
         }
-        waveBody(player);
-        remotes.forEach((body) => waveBody(body));
-        viewHands.userData.left.position.set(-0.18 + wave * 0.08, 0.28, -0.4);
-        viewHands.userData.right.position.set(0.18 - wave * 0.08, 0.28, -0.4);
-        viewHands.userData.left.rotation.set(0.1, 0, wave * 0.5);
-        viewHands.userData.right.rotation.set(0.1, 0, -wave * 0.5);
+    }
+
+    function updateArms() {
+        if (!playerState.onLadder) {
+            swingArms(player, playerState.sprinting, player.userData.walk);
+        }
+        remotes.forEach((body) => {
+            if (body.userData.sprint) {
+                body.userData.walk += 0.38;
+            }
+            swingArms(body, !!body.userData.sprint, body.userData.walk);
+        });
+        const left = viewHands.userData.left;
+        const right = viewHands.userData.right;
+        if (playerState.sprinting) {
+            const swing = Math.sin(player.userData.walk);
+            left.position.set(-0.18, 0.22, -0.42 - swing * 0.2);
+            right.position.set(0.18, 0.22, -0.42 + swing * 0.2);
+            left.rotation.set(swing * 0.8, 0, 0);
+            right.rotation.set(-swing * 0.8, 0, 0);
+        } else {
+            left.position.set(-0.18, 0.22, -0.4);
+            right.position.set(0.18, 0.22, -0.4);
+            left.rotation.set(0, 0, 0);
+            right.rotation.set(0, 0, 0);
+        }
     }
 
     let last = 0;
@@ -1184,7 +1215,7 @@ if (typeof THREE === 'undefined') {
         } else {
             updateLookPose(false);
         }
-        updateWave();
+        updateArms();
         updateCamera();
         renderer.render(scene, camera);
         requestAnimationFrame(tick);
@@ -1205,6 +1236,11 @@ if (typeof THREE === 'undefined') {
     window.addEventListener('keydown', (event) => {
         keys[event.code] = true;
         if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(event.code)) {
+            event.preventDefault();
+        }
+        if (playing && !event.repeat && (event.code === 'ShiftLeft' || event.code === 'ShiftRight')) {
+            playerState.sprinting = !playerState.sprinting;
+            updateHint();
             event.preventDefault();
         }
         if (playing && !event.repeat && (event.code === 'Digit1' || event.code === 'Numpad1')) {
