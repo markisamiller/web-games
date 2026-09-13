@@ -21,9 +21,6 @@ let nearDoor = null;
 let doorTimer = 0;
 let rightHeld = false;
 let lookPitch = 0;
-let handAimX = 0;
-let handAimY = 0;
-let handsParked = false;
 
 function fitGame() {
     const wrap = document.querySelector('.game-wrap');
@@ -402,7 +399,7 @@ if (typeof THREE === 'undefined') {
             return;
         }
         hintEl.textContent = viewMode === 'first'
-            ? 'Move the mouse to move your hands. Left click puts them back. Hold right click to look. Press 2 for second person.'
+            ? 'Hold right click to look. Press 2 for second person.'
             : 'Hold right click to look. Press 1 for first person.';
     }
 
@@ -416,13 +413,8 @@ if (typeof THREE === 'undefined') {
         player.userData.rightArm.visible = true;
         if (first) {
             const walk = player.userData.walk;
-            viewHands.position.set(
-                Math.cos(walk) * 0.012 + handAimX * 0.22,
-                Math.sin(walk) * 0.018 + handAimY * 0.16,
-                0
-            );
-            viewHands.rotation.y = -handAimX * 0.2;
-            viewHands.rotation.x = handAimY * 0.15;
+            viewHands.position.set(Math.cos(walk) * 0.012, Math.sin(walk) * 0.018, 0);
+            viewHands.rotation.set(0, 0, 0);
             viewHands.userData.left.rotation.x = 0.28 + Math.sin(walk) * 0.1;
             viewHands.userData.right.rotation.x = 0.28 + Math.sin(walk + Math.PI) * 0.1;
             const eyeY = player.position.y + 2.14;
@@ -537,17 +529,7 @@ if (typeof THREE === 'undefined') {
         event.preventDefault();
     });
     window.addEventListener('mousedown', (event) => {
-        if (!playing) {
-            return;
-        }
-        if (event.button === 0 && viewMode === 'first') {
-            handsParked = true;
-            handAimX = 0;
-            handAimY = 0;
-            event.preventDefault();
-            return;
-        }
-        if (event.button !== 2) {
+        if (!playing || event.button !== 2) {
             return;
         }
         rightHeld = true;
@@ -559,18 +541,7 @@ if (typeof THREE === 'undefined') {
         }
     });
     window.addEventListener('mousemove', (event) => {
-        if (!playing) {
-            return;
-        }
-        if (handsParked && (Math.abs(event.movementX) > 3 || Math.abs(event.movementY) > 3)) {
-            handsParked = false;
-        }
-        const box = viewEl.getBoundingClientRect();
-        if (!handsParked && box.width > 0 && box.height > 0) {
-            handAimX = Math.max(-1, Math.min(1, ((event.clientX - box.left) / box.width) * 2 - 1));
-            handAimY = Math.max(-1, Math.min(1, -(((event.clientY - box.top) / box.height) * 2 - 1)));
-        }
-        if (!rightHeld) {
+        if (!playing || !rightHeld) {
             return;
         }
         player.rotation.y -= event.movementX * 0.006;
