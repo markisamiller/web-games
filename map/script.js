@@ -22,7 +22,9 @@ const playBtn = document.getElementById('play-btn');
 const hostRoomBtn = document.getElementById('host-room-btn');
 const joinRoomBtn = document.getElementById('join-room-btn');
 const joinCodeInput = document.getElementById('join-code');
+const nameInput = document.getElementById('player-name');
 const viewEl = document.getElementById('view');
+let myName = '';
 
 let playing = false;
 let viewMode = 'second';
@@ -132,20 +134,45 @@ function makeBlockLimb(width, height, depth, color, tipColor, tipHeight, tipDept
     return pivot;
 }
 
-function makePlayer() {
+const PEOPLE = [
+    { skin: 0xffe0bd, hair: 0x3b2210, shirt: 0x2b6cb0, pants: 0x2d3748, glasses: false },
+    { skin: 0xf1c27d, hair: 0x1a1a1a, shirt: 0xc53030, pants: 0x1a365d, glasses: false },
+    { skin: 0xd4a574, hair: 0x5c3317, shirt: 0x276749, pants: 0x2c2c2c, glasses: true },
+    { skin: 0x8d5524, hair: 0x111111, shirt: 0xed8936, pants: 0x2b2d42, glasses: false },
+    { skin: 0xffdbac, hair: 0xc9a227, shirt: 0x553c9a, pants: 0x4a5568, glasses: false },
+    { skin: 0xc68642, hair: 0x4a2506, shirt: 0x2c7a7b, pants: 0x1a202c, glasses: false },
+    { skin: 0xf3d1b8, hair: 0x8b4513, shirt: 0xe53e3e, pants: 0x2d3748, glasses: true },
+    { skin: 0xae7a4a, hair: 0x2b1d0e, shirt: 0x3182ce, pants: 0x234e52, glasses: false }
+];
+
+function lookFromName(name) {
+    const text = name || 'Friend';
+    let hash = 0;
+    for (let i = 0; i < text.length; i += 1) {
+        hash = (hash * 33 + text.charCodeAt(i)) % 2147483647;
+    }
+    return PEOPLE[hash % PEOPLE.length];
+}
+
+function cleanName(value) {
+    return String(value || '')
+        .replace(/[^a-zA-Z0-9 ]/g, '')
+        .trim()
+        .slice(0, 12);
+}
+
+function makePlayer(look) {
+    const style = look || lookFromName('Friend');
     const body = new THREE.Group();
-    const skin = 0xfbfbfb;
-    const black = 0x0a0a0a;
-    const hair = 0x1a2b8a;
+    const skin = style.skin;
+    const hair = style.hair;
+    const shirt = style.shirt;
+    const pants = style.pants;
     const gold = 0xd89a2a;
     const lens = 0x2b1a3d;
 
-    const torso = makeSoftBox(0.96, 1.0, 0.42, black, 0.04);
+    const torso = makeSoftBox(0.96, 1.0, 0.42, shirt, 0.04);
     torso.position.y = 1.4;
-    const zipper = makeSoftBox(0.03, 0.84, 0.03, 0x3a3a3a, 0.01);
-    zipper.position.set(0, 1.4, -0.23);
-    const zipPull = makeSoftBox(0.07, 0.05, 0.05, 0x4a4a4a, 0.01);
-    zipPull.position.set(0, 1.78, -0.25);
 
     const head = new THREE.Group();
     const skull = new THREE.Mesh(new THREE.SphereGeometry(0.46, 36, 36), skinMaterial(skin));
@@ -205,22 +232,26 @@ function makePlayer() {
     smile.rotation.set(Math.PI, 0, 0);
     smile.position.set(0, -0.16, -0.42);
 
-    head.add(skull, hairCap, hairFront, flick, spike, hairSide, hairSideR, hairBack, glasses, smile);
+    if (style.glasses) {
+        head.add(skull, hairCap, hairFront, flick, spike, hairSide, hairSideR, hairBack, glasses, smile);
+    } else {
+        head.add(skull, hairCap, hairFront, flick, spike, hairSide, hairSideR, hairBack, smile);
+    }
     head.position.y = 2.14;
 
-    const leftArm = makeBlockLimb(0.26, 0.9, 0.26, black, skin, 0.22, 0.26);
+    const leftArm = makeBlockLimb(0.26, 0.9, 0.26, shirt, skin, 0.22, 0.26);
     leftArm.position.set(-0.63, 1.84, 0);
-    const rightArm = makeBlockLimb(0.26, 0.9, 0.26, black, skin, 0.22, 0.26);
+    const rightArm = makeBlockLimb(0.26, 0.9, 0.26, shirt, skin, 0.22, 0.26);
     rightArm.position.set(0.63, 1.84, 0);
 
-    const leftLeg = makeBlockLimb(0.3, 0.72, 0.3, black, skin, 0.2, 0.52);
+    const leftLeg = makeBlockLimb(0.3, 0.72, 0.3, pants, skin, 0.2, 0.52);
     leftLeg.position.set(-0.2, 0.88, 0);
-    const rightLeg = makeBlockLimb(0.3, 0.72, 0.3, black, skin, 0.2, 0.52);
+    const rightLeg = makeBlockLimb(0.3, 0.72, 0.3, pants, skin, 0.2, 0.52);
     rightLeg.position.set(0.2, 0.88, 0);
 
-    body.add(torso, zipper, zipPull, head, leftArm, rightArm, leftLeg, rightLeg);
+    body.add(torso, head, leftArm, rightArm, leftLeg, rightLeg);
     body.position.set(0, 0, 6);
-    body.userData = { head, leftArm, rightArm, leftLeg, rightLeg, walk: 0 };
+    body.userData = { head, leftArm, rightArm, leftLeg, rightLeg, walk: 0, name: '', tag: null, sprint: false };
     return body;
 }
 
@@ -489,7 +520,7 @@ if (typeof THREE === 'undefined') {
     ground.receiveShadow = true;
     scene.add(ground);
 
-    const player = makePlayer();
+    let player = makePlayer(lookFromName('Friend'));
     scene.add(player);
     const playerState = { vy: 0, onGround: true, onLadder: false, spaceClimb: false, sprinting: false };
     const remotes = new Map();
@@ -875,7 +906,8 @@ if (typeof THREE === 'undefined') {
             rotY: player.rotation.y,
             headY: player.userData.head.rotation.y,
             headX: player.userData.head.rotation.x,
-            sprint: playerState.sprinting
+            sprint: playerState.sprinting,
+            name: myName
         };
     }
 
@@ -911,7 +943,12 @@ if (typeof THREE === 'undefined') {
                 // ignore
             }
         }
-        remotes.forEach((body) => scene.remove(body));
+        remotes.forEach((body) => {
+            if (body.userData.tag) {
+                body.userData.tag.remove();
+            }
+            scene.remove(body);
+        });
         remotes.clear();
         net = {
             role: 'offline',
@@ -926,11 +963,51 @@ if (typeof THREE === 'undefined') {
         setNetStatus('Playing alone');
     }
 
-    function getRemote(id) {
-        if (remotes.has(id)) {
-            return remotes.get(id);
+    function makeNameTag(name) {
+        const el = document.createElement('div');
+        el.className = 'name-tag';
+        el.textContent = name;
+        document.getElementById('game').appendChild(el);
+        return el;
+    }
+
+    function placeNameTag(el, person, hide) {
+        if (!el) {
+            return;
         }
-        const body = makePlayer();
+        if (hide) {
+            el.hidden = true;
+            return;
+        }
+        const spot = person.position.clone();
+        spot.y += 2.55;
+        spot.project(camera);
+        if (spot.z > 1) {
+            el.hidden = true;
+            return;
+        }
+        const x = (spot.x * 0.5 + 0.5) * ARENA_WIDTH;
+        const y = (-spot.y * 0.5 + 0.5) * ARENA_HEIGHT;
+        el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`;
+        el.hidden = false;
+    }
+
+    function getRemote(id, name) {
+        const label = name || 'Friend';
+        if (remotes.has(id)) {
+            const body = remotes.get(id);
+            if (body.userData.name === label) {
+                return body;
+            }
+            if (body.userData.tag) {
+                body.userData.tag.remove();
+            }
+            scene.remove(body);
+            remotes.delete(id);
+        }
+        const body = makePlayer(lookFromName(label));
+        body.userData.name = label;
+        body.userData.tag = makeNameTag(label);
         scene.add(body);
         remotes.set(id, body);
         return body;
@@ -943,7 +1020,7 @@ if (typeof THREE === 'undefined') {
                 return;
             }
             seen.add(pose.id);
-            const body = getRemote(pose.id);
+            const body = getRemote(pose.id, pose.name);
             body.position.set(pose.x, pose.y, pose.z);
             body.rotation.y = pose.rotY || 0;
             body.userData.head.rotation.y = pose.headY || 0;
@@ -952,15 +1029,18 @@ if (typeof THREE === 'undefined') {
         });
         remotes.forEach((body, id) => {
             if (!seen.has(id)) {
+                if (body.userData.tag) {
+                    body.userData.tag.remove();
+                }
                 scene.remove(body);
                 remotes.delete(id);
             }
         });
         const count = players.length;
         if (net.code === 'PUBLIC') {
-            setNetStatus(count <= 1 ? 'City server: waiting for friends' : `City server: ${count} players`);
+            setNetStatus(count <= 1 ? 'Waiting for real friends' : `${count} real people in the city`);
         } else {
-            setNetStatus(count <= 1 ? `Room ${net.code}: waiting` : `Room ${net.code}: ${count} players`);
+            setNetStatus(count <= 1 ? `Room ${net.code}: waiting for friends` : `Room ${net.code}: ${count} real people`);
         }
     }
 
@@ -975,7 +1055,8 @@ if (typeof THREE === 'undefined') {
                 rotY: pose.rotY,
                 headY: pose.headY,
                 headX: pose.headX,
-                sprint: pose.sprint
+                sprint: pose.sprint,
+                name: pose.name
             });
         });
         applyWorld(players);
@@ -1008,7 +1089,8 @@ if (typeof THREE === 'undefined') {
                 rotY: data.rotY,
                 headY: data.headY,
                 headX: data.headX,
-                sprint: data.sprint
+                sprint: data.sprint,
+                name: data.name
             });
         });
         conn.on('close', () => {
@@ -1027,7 +1109,7 @@ if (typeof THREE === 'undefined') {
         net.poses = new Map();
         peer.on('connection', setupHostConnection);
         if (code === 'PUBLIC') {
-            setNetStatus('City server: you are in. Waiting for friends');
+            setNetStatus('You are in. Waiting for real friends');
         } else {
             setNetStatus(`Room ${code}: share this code`);
         }
@@ -1048,7 +1130,7 @@ if (typeof THREE === 'undefined') {
                 player.position.x += 2 + Math.random() * 2;
                 player.position.z += (Math.random() - 0.5) * 2;
                 if (code === 'PUBLIC') {
-                    setNetStatus('Joined the city server');
+                    setNetStatus('You joined. These are real people');
                 } else {
                     setNetStatus(`Joined room ${code}`);
                 }
@@ -1070,7 +1152,12 @@ if (typeof THREE === 'undefined') {
                     return;
                 }
                 setNetStatus('Host left. Rejoining...');
-                remotes.forEach((body) => scene.remove(body));
+                remotes.forEach((body) => {
+                    if (body.userData.tag) {
+                        body.userData.tag.remove();
+                    }
+                    scene.remove(body);
+                });
                 remotes.clear();
                 if (code === 'PUBLIC') {
                     setTimeout(() => joinPublicWorld(), 600);
@@ -1131,6 +1218,9 @@ if (typeof THREE === 'undefined') {
     }
 
     function joinPrivateRoom() {
+        if (!myName && !takeName()) {
+            return;
+        }
         const code = joinCodeInput.value.trim().toUpperCase();
         if (code.length !== 4) {
             setOnlineError('Type the 4-letter room code.');
@@ -1157,6 +1247,37 @@ if (typeof THREE === 'undefined') {
         if (net.role === 'guest') {
             sendTo(net.hostConn, Object.assign({ type: 'pose' }, myPose()));
         }
+    }
+
+    function setLocalPerson(name) {
+        const next = makePlayer(lookFromName(name));
+        next.position.copy(player.position);
+        next.rotation.copy(player.rotation);
+        scene.remove(player);
+        scene.add(next);
+        player = next;
+        if (!player.userData.tag) {
+            player.userData.tag = makeNameTag(name);
+        }
+        player.userData.tag.textContent = name;
+        player.userData.name = name;
+    }
+
+    function takeName() {
+        const name = cleanName(nameInput.value);
+        if (!name) {
+            setOnlineError('Type a name first. Friends will see it over your head.');
+            nameInput.focus();
+            return false;
+        }
+        myName = name;
+        setLocalPerson(name);
+        return true;
+    }
+
+    function updateNameTags() {
+        placeNameTag(player.userData.tag, player, viewMode === 'first');
+        remotes.forEach((body) => placeNameTag(body.userData.tag, body, false));
     }
 
     function beginPlay() {
@@ -1217,16 +1338,35 @@ if (typeof THREE === 'undefined') {
         }
         updateArms();
         updateCamera();
+        updateNameTags();
         renderer.render(scene, camera);
         requestAnimationFrame(tick);
     }
 
+    nameInput.addEventListener('keydown', (event) => {
+        if (event.code === 'Enter') {
+            playBtn.click();
+        }
+    });
     playBtn.addEventListener('click', () => {
+        if (!takeName()) {
+            return;
+        }
         beginPlay();
         joinPublicWorld();
     });
-    hostRoomBtn.addEventListener('click', hostPrivateRoom);
-    joinRoomBtn.addEventListener('click', joinPrivateRoom);
+    hostRoomBtn.addEventListener('click', () => {
+        if (!takeName()) {
+            return;
+        }
+        hostPrivateRoom();
+    });
+    joinRoomBtn.addEventListener('click', () => {
+        if (!takeName()) {
+            return;
+        }
+        joinPrivateRoom();
+    });
     joinCodeInput.addEventListener('keydown', (event) => {
         if (event.code === 'Enter') {
             joinPrivateRoom();

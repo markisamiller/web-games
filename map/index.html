@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home World</title>
-    <link rel="stylesheet" href="/map/styles.css?v=city24">
+    <link rel="stylesheet" href="/map/styles.css?v=city25">
 </head>
 <body>
     <div class="game-wrap">
@@ -26,7 +26,8 @@
                 <p>Hold the right mouse button and move to look around. The head turns first. Then the body follows that way.</p>
                 <p>Some buildings have brown ladders. Walk into one and press Space or W to climb onto the roof.</p>
                 <p>Walk into a glowing door to play another game.</p>
-                <p>Anyone can join the city server. Press Play to go in.</p>
+                <p>No computer players. Only real people who type a name and press Play.</p>
+                <input id="player-name" type="text" maxlength="12" placeholder="Your name" autocomplete="off" spellcheck="false">
                 <button id="play-btn" type="button">Play</button>
                 <p class="or-line">or make a private room</p>
                 <button id="host-room-btn" type="button">Make Room</button>
@@ -39,6 +40,6 @@
     </div>
     <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-    <script src="/map/script.js?v=city24"></script>
+    <script src="/map/script.js?v=city25"></script>
 </body>
 </html>
