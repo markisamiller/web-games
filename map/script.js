@@ -721,7 +721,7 @@ if (typeof THREE === 'undefined') {
         if (first) {
             const walk = player.userData.walk;
             viewHands.position.set(Math.cos(walk) * 0.012, Math.sin(walk) * 0.018, 0);
-            viewHands.rotation.set(0, 0, 0);
+            viewHands.rotation.set(0, Math.PI / 6, 0);
             viewHands.userData.left.rotation.x = 0.28 + Math.sin(walk) * 0.1;
             viewHands.userData.right.rotation.x = 0.28 + Math.sin(walk + Math.PI) * 0.1;
             const pitch = lookPitch - 0.18;
