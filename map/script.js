@@ -207,11 +207,9 @@ function makeViewHands() {
         const group = new THREE.Group();
         const sleeve = makeSoftBox(0.16, 0.58, 0.14, black, 0.03);
         sleeve.position.set(side * 0.02, 0.06, 0);
-        const palm = makeSoftBox(0.06, 0.05, 0.08, skin, 0.016);
-        palm.position.set(side * -0.04, -0.24, -0.08);
-        palm.rotation.x = 0.6;
-        palm.rotation.y = side * 0.4;
-        palm.rotation.z = side * 0.25;
+        const palm = makeSoftBox(0.08, 0.036, 0.07, skin, 0.012);
+        palm.position.set(side * -0.05, -0.18, -0.06);
+        palm.rotation.x = -1.15;
         group.add(sleeve, palm);
         group.position.set(side * 0.4, -0.04, -0.38);
         return group;
