@@ -223,7 +223,13 @@ function makeViewHands() {
     }
 
     const left = makeHand(-1);
-    const right = makeHand(1);
+    const right = new THREE.Group();
+    const waveSleeve = makeSoftBox(0.07, 0.16, 0.07, black, 0.02);
+    waveSleeve.position.y = -0.05;
+    const wavePalm = makeSoftBox(0.09, 0.08, 0.04, skin, 0.015);
+    wavePalm.position.set(0, 0.07, -0.02);
+    right.add(waveSleeve, wavePalm);
+    right.position.set(0, 0.26, -0.42);
     hands.add(left, right);
     hands.userData = { left, right };
     return hands;
@@ -798,7 +804,6 @@ if (typeof THREE === 'undefined') {
             viewHands.position.set(Math.cos(walk) * 0.012, Math.sin(walk) * 0.018, 0);
             viewHands.rotation.set(0, 0, 0);
             viewHands.userData.left.rotation.set(handAngle, 0, 0);
-            viewHands.userData.right.rotation.set(handAngle, 0, 0);
             const lookX = Math.sin(rot);
             const lookY = 0;
             const lookZ = -Math.cos(rot);
@@ -869,10 +874,22 @@ if (typeof THREE === 'undefined') {
         }
     }
 
+    function updateWave() {
+        const wave = Math.sin(Date.now() / 150);
+        const arm = player.userData.rightArm;
+        arm.rotation.x = -2.7;
+        arm.rotation.y = 0.15;
+        arm.rotation.z = 0.35 + wave * 0.65;
+        const hand = viewHands.userData.right;
+        hand.position.set(wave * 0.2, 0.26, -0.42);
+        hand.rotation.set(0.15, 0, wave * 0.45);
+    }
+
     let last = 0;
     function tick(now) {
         const dt = last ? Math.min(40, now - last) : 16;
         last = now;
+        updateWave();
         if (playing) {
             if (viewMode === 'spectator') {
                 updateSpectator();
