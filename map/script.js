@@ -219,7 +219,13 @@ function makeViewHands() {
 
     const left = makeHand(-1);
     const right = makeHand(1);
-    hands.add(left, right);
+    const chest = makeSoftBox(0.36, 0.24, 0.16, black, 0.03);
+    chest.position.set(0, -0.3, -0.5);
+    chest.rotation.x = 0.45;
+    const zipper = makeSoftBox(0.012, 0.18, 0.02, 0x3a3a3a, 0.004);
+    zipper.position.set(0, -0.3, -0.59);
+    zipper.rotation.x = 0.45;
+    hands.add(left, right, chest, zipper);
     hands.userData = { left, right };
     return hands;
 }
@@ -403,19 +409,22 @@ if (typeof THREE === 'undefined') {
         player.visible = !first;
         viewHands.visible = first;
         player.userData.head.visible = !first;
+        player.userData.leftArm.visible = true;
+        player.userData.rightArm.visible = true;
         if (first) {
             const walk = player.userData.walk;
             viewHands.position.set(Math.cos(walk) * 0.012, Math.sin(walk) * 0.018, 0);
             viewHands.userData.left.rotation.x = 0.28 + Math.sin(walk) * 0.1;
             viewHands.userData.right.rotation.x = 0.28 + Math.sin(walk + Math.PI) * 0.1;
             const eyeY = player.position.y + 2.14;
-            const lookX = Math.sin(rot) * Math.cos(lookPitch);
-            const lookY = Math.sin(lookPitch);
-            const lookZ = -Math.cos(rot) * Math.cos(lookPitch);
+            const pitch = lookPitch - 0.18;
+            const lookX = Math.sin(rot) * Math.cos(pitch);
+            const lookY = Math.sin(pitch);
+            const lookZ = -Math.cos(rot) * Math.cos(pitch);
             camera.position.set(
-                player.position.x + lookX * 0.18,
+                player.position.x + lookX * 0.04,
                 eyeY,
-                player.position.z + lookZ * 0.18
+                player.position.z + lookZ * 0.04
             );
             camera.lookAt(
                 player.position.x + lookX,
