@@ -210,7 +210,7 @@ function makeViewHands() {
         const palm = makeSoftBox(0.055, 0.045, 0.07, skin, 0.015);
         palm.position.set(0, -0.008, -0.02);
         group.add(sleeve, palm);
-        group.position.set(side * 0.34, -0.26, -0.5);
+        group.position.set(side * 0.34, -0.17, -0.5);
         group.rotation.x = 0.55;
         group.rotation.y = side * 0.28;
         group.rotation.z = side * -0.06;
