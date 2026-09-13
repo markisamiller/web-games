@@ -25,7 +25,7 @@ let starsGot = 0;
 let nearDoor = null;
 let doorTimer = 0;
 let rightHeld = false;
-let lookPitch = -0.28;
+let lookPitch = 0;
 
 function fitGame() {
     const wrap = document.querySelector('.game-wrap');
@@ -776,7 +776,7 @@ if (typeof THREE === 'undefined') {
         const first = viewMode === 'first';
         const spectate = viewMode === 'spectator';
         const head = player.userData.head;
-        head.rotation.x = spectate ? 0 : -lookPitch;
+        head.rotation.x = first || spectate ? 0 : -lookPitch;
         player.visible = !first;
         viewHands.visible = first;
         head.visible = !first;
@@ -799,10 +799,9 @@ if (typeof THREE === 'undefined') {
             viewHands.rotation.set(0, 0, 0);
             viewHands.userData.left.rotation.set(handAngle, 0, 0);
             viewHands.userData.right.rotation.set(handAngle, 0, 0);
-            const pitch = lookPitch - 0.18;
-            const lookX = Math.sin(rot) * Math.cos(pitch);
-            const lookY = Math.sin(pitch);
-            const lookZ = -Math.cos(rot) * Math.cos(pitch);
+            const lookX = Math.sin(rot);
+            const lookY = 0;
+            const lookZ = -Math.cos(rot);
             camera.position.set(
                 player.position.x + lookX * 0.08,
                 headY,
@@ -901,6 +900,7 @@ if (typeof THREE === 'undefined') {
         }
         if (playing && !event.repeat && (event.code === 'Digit1' || event.code === 'Numpad1')) {
             viewMode = 'first';
+            lookPitch = 0;
             updateHint();
         }
         if (playing && !event.repeat && (event.code === 'Digit2' || event.code === 'Numpad2')) {
@@ -932,6 +932,10 @@ if (typeof THREE === 'undefined') {
     });
     window.addEventListener('mousemove', (event) => {
         if (!playing || !rightHeld) {
+            return;
+        }
+        if (viewMode === 'first') {
+            player.rotation.y -= event.movementX * 0.006;
             return;
         }
         if (viewMode === 'spectator') {
