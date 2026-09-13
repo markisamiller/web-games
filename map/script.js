@@ -2,7 +2,6 @@ const ARENA_WIDTH = 1000;
 const ARENA_HEIGHT = 560;
 const MOVE_SPEED = 0.18;
 const SPRINT_SPEED = 0.32;
-const SPECTATE_SPEED = 0.42;
 const SPRINT_HAND_ANGLE = Math.PI / 6;
 const TURN_SPEED = 0.045;
 const JUMP_POWER = 0.28;
@@ -18,9 +17,7 @@ const playBtn = document.getElementById('play-btn');
 const viewEl = document.getElementById('view');
 
 let playing = false;
-let viewMode = 'spectator';
-let specYaw = 0;
-const specPos = { x: 4, y: 5, z: 14 };
+let viewMode = 'second';
 let starsGot = 0;
 let nearDoor = null;
 let doorTimer = 0;
@@ -506,12 +503,10 @@ if (typeof THREE === 'undefined') {
     }
 
     function updateCity() {
-        const followX = viewMode === 'spectator' ? specPos.x : player.position.x;
-        const followZ = viewMode === 'spectator' ? specPos.z : player.position.z;
-        ground.position.x = followX;
-        ground.position.z = followZ;
-        const cx = Math.round(followX / CITY_BLOCK);
-        const cz = Math.round(followZ / CITY_BLOCK);
+        ground.position.x = player.position.x;
+        ground.position.z = player.position.z;
+        const cx = Math.round(player.position.x / CITY_BLOCK);
+        const cz = Math.round(player.position.z / CITY_BLOCK);
         const needed = new Set();
         for (let x = cx - CITY_VIEW; x <= cx + CITY_VIEW; x += 1) {
             for (let z = cz - CITY_VIEW; z <= cz + CITY_VIEW; z += 1) {
@@ -709,95 +704,26 @@ if (typeof THREE === 'undefined') {
     }
 
     function updateHint() {
-        if (starsGot === STAR_COUNT && viewMode !== 'spectator') {
+        if (starsGot === STAR_COUNT) {
             hintEl.textContent = 'You got every star!';
             return;
         }
-        if (viewMode === 'spectator') {
-            hintEl.textContent = 'Watch mode. WASD fly, Space up, Shift down. Hold right click to look. Press 1 or 2 to play.';
-            return;
-        }
         hintEl.textContent = viewMode === 'first'
-            ? 'Hold Shift to sprint. Walk to a ladder and press Space to climb. Press 2 or 3 to change view.'
-            : 'Hold Shift to sprint. Walk to a ladder and press Space to climb. Press 1 or 3 to change view.';
-    }
-
-    function updateSpectator() {
-        const pitch = lookPitch;
-        const lookX = Math.sin(specYaw) * Math.cos(pitch);
-        const lookY = Math.sin(pitch);
-        const lookZ = -Math.cos(specYaw) * Math.cos(pitch);
-        const rightX = Math.cos(specYaw);
-        const rightZ = Math.sin(specYaw);
-        let moveX = 0;
-        let moveY = 0;
-        let moveZ = 0;
-        if (keys.KeyW || keys.ArrowUp) {
-            moveX += lookX;
-            moveY += lookY;
-            moveZ += lookZ;
-        }
-        if (keys.KeyS || keys.ArrowDown) {
-            moveX -= lookX;
-            moveY -= lookY;
-            moveZ -= lookZ;
-        }
-        if (keys.KeyA || keys.ArrowLeft) {
-            moveX -= rightX;
-            moveZ -= rightZ;
-        }
-        if (keys.KeyD || keys.ArrowRight) {
-            moveX += rightX;
-            moveZ += rightZ;
-        }
-        if (keys.Space) {
-            moveY += 1;
-        }
-        if (keys.ShiftLeft || keys.ShiftRight) {
-            moveY -= 1;
-        }
-        const length = Math.hypot(moveX, moveY, moveZ);
-        if (length > 0) {
-            specPos.x += (moveX / length) * SPECTATE_SPEED;
-            specPos.y += (moveY / length) * SPECTATE_SPEED;
-            specPos.z += (moveZ / length) * SPECTATE_SPEED;
-        }
-        if (specPos.y < 1) {
-            specPos.y = 1;
-        }
-        updateCity();
-    }
-
-    function enterSpectator() {
-        specPos.x = camera.position.x;
-        specPos.y = Math.max(1, camera.position.y);
-        specPos.z = camera.position.z;
-        specYaw = player.rotation.y;
-        viewMode = 'spectator';
-        updateHint();
+            ? 'Hold Shift to sprint. Walk to a ladder and press Space to climb. Press 2 for second person.'
+            : 'Hold Shift to sprint. Walk to a ladder and press Space to climb. Press 1 for first person.';
     }
 
     function updateCamera() {
         const rot = player.rotation.y;
         const first = viewMode === 'first';
-        const spectate = viewMode === 'spectator';
         const head = player.userData.head;
-        head.rotation.x = first || spectate ? 0 : -lookPitch;
+        head.rotation.x = first ? 0 : -lookPitch;
         player.visible = !first;
         viewHands.visible = first;
         head.visible = !first;
         player.userData.leftArm.visible = true;
         player.userData.rightArm.visible = true;
         const headY = player.position.y + 2.14;
-        if (spectate) {
-            const pitch = lookPitch;
-            const lookX = Math.sin(specYaw) * Math.cos(pitch);
-            const lookY = Math.sin(pitch);
-            const lookZ = -Math.cos(specYaw) * Math.cos(pitch);
-            camera.position.set(specPos.x, specPos.y, specPos.z);
-            camera.lookAt(specPos.x + lookX, specPos.y + lookY, specPos.z + lookZ);
-            return;
-        }
         if (first) {
             const walk = player.userData.walk;
             const handAngle = playerState.sprinting ? SPRINT_HAND_ANGLE : 0;
@@ -891,13 +817,9 @@ if (typeof THREE === 'undefined') {
         last = now;
         updateWave();
         if (playing) {
-            if (viewMode === 'spectator') {
-                updateSpectator();
-            } else {
-                updatePlayer();
-                grabStars();
-                checkDoors(dt);
-            }
+            updatePlayer();
+            grabStars();
+            checkDoors(dt);
         }
         updateCamera();
         renderer.render(scene, camera);
@@ -923,9 +845,6 @@ if (typeof THREE === 'undefined') {
         if (playing && !event.repeat && (event.code === 'Digit2' || event.code === 'Numpad2')) {
             viewMode = 'second';
             updateHint();
-        }
-        if (playing && !event.repeat && (event.code === 'Digit3' || event.code === 'Numpad3')) {
-            enterSpectator();
         }
     });
     window.addEventListener('keyup', (event) => {
@@ -955,11 +874,7 @@ if (typeof THREE === 'undefined') {
             player.rotation.y -= event.movementX * 0.006;
             return;
         }
-        if (viewMode === 'spectator') {
-            specYaw -= event.movementX * 0.006;
-        } else {
-            player.rotation.y -= event.movementX * 0.006;
-        }
+        player.rotation.y -= event.movementX * 0.006;
         lookPitch -= event.movementY * 0.005;
         lookPitch = Math.max(-1.1, Math.min(1.1, lookPitch));
     });
