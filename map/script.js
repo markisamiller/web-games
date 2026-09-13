@@ -40,11 +40,26 @@ function makeBox(width, height, depth, color) {
     return mesh;
 }
 
-function makeLimb(width, height, depth, color) {
+function makeRoundMesh(geometry, color) {
+    const mesh = new THREE.Mesh(
+        geometry,
+        new THREE.MeshLambertMaterial({ color })
+    );
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    return mesh;
+}
+
+function makeLimb(radius, height, color, tipColor, tipSize) {
     const pivot = new THREE.Group();
-    const mesh = makeBox(width, height, depth, color);
+    const mesh = makeRoundMesh(
+        new THREE.CylinderGeometry(radius, radius, height, 12),
+        color
+    );
     mesh.position.y = -height / 2;
-    pivot.add(mesh);
+    const tip = makeRoundMesh(new THREE.SphereGeometry(tipSize, 12, 12), tipColor);
+    tip.position.y = -height;
+    pivot.add(mesh, tip);
     return pivot;
 }
 
@@ -54,32 +69,30 @@ function makePlayer() {
     const shirt = 0xc8102e;
     const pants = 0x2a4a8b;
 
-    const torso = makeBox(0.85, 1.05, 0.55, shirt);
+    const torso = makeRoundMesh(new THREE.CylinderGeometry(0.38, 0.42, 1.05, 14), shirt);
     torso.position.y = 1.15;
 
     const head = new THREE.Group();
-    const skull = new THREE.Mesh(
-        new THREE.SphereGeometry(0.4, 16, 16),
-        new THREE.MeshLambertMaterial({ color: 0xffd100 })
-    );
-    const eyeL = makeBox(0.1, 0.1, 0.1, 0x1a0f08);
+    const skull = makeRoundMesh(new THREE.SphereGeometry(0.4, 16, 16), 0xffd100);
+    const eyeL = makeRoundMesh(new THREE.SphereGeometry(0.07, 10, 10), 0x1a0f08);
     eyeL.position.set(-0.14, 0.08, -0.34);
     const eyeR = eyeL.clone();
     eyeR.position.x = 0.14;
-    const smile = makeBox(0.22, 0.06, 0.08, 0x1a0f08);
-    smile.position.set(0, -0.12, -0.34);
+    const smile = makeRoundMesh(new THREE.SphereGeometry(0.08, 10, 8), 0x1a0f08);
+    smile.scale.set(1.6, 0.45, 0.7);
+    smile.position.set(0, -0.14, -0.34);
     head.add(skull, eyeL, eyeR, smile);
     head.position.y = 1.95;
 
-    const leftArm = makeLimb(0.22, 0.85, 0.22, skin);
-    leftArm.position.set(-0.56, 1.55, 0);
-    const rightArm = makeLimb(0.22, 0.85, 0.22, skin);
-    rightArm.position.set(0.56, 1.55, 0);
+    const leftArm = makeLimb(0.11, 0.85, skin, skin, 0.13);
+    leftArm.position.set(-0.5, 1.55, 0);
+    const rightArm = makeLimb(0.11, 0.85, skin, skin, 0.13);
+    rightArm.position.set(0.5, 1.55, 0);
 
-    const leftLeg = makeLimb(0.26, 0.9, 0.26, pants);
-    leftLeg.position.set(-0.22, 0.62, 0);
-    const rightLeg = makeLimb(0.26, 0.9, 0.26, pants);
-    rightLeg.position.set(0.22, 0.62, 0);
+    const leftLeg = makeLimb(0.13, 0.9, pants, 0x3a2a18, 0.15);
+    leftLeg.position.set(-0.2, 0.62, 0);
+    const rightLeg = makeLimb(0.13, 0.9, pants, 0x3a2a18, 0.15);
+    rightLeg.position.set(0.2, 0.62, 0);
 
     body.add(torso, head, leftArm, rightArm, leftLeg, rightLeg);
     body.position.set(0, 0, 16);
