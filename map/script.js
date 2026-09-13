@@ -205,27 +205,18 @@ function makeViewHands() {
 
     function makeHand(side) {
         const group = new THREE.Group();
-        const sleeve = makeSoftBox(0.5, 0.11, 0.1, black, 0.025);
-        sleeve.position.set(side * 0.14, 0, 0.02);
-        const palm = makeSoftBox(0.1, 0.085, 0.1, skin, 0.022);
-        palm.position.set(side * -0.2, 0.012, -0.05);
+        const sleeve = makeSoftBox(0.16, 0.58, 0.14, black, 0.03);
+        sleeve.position.set(side * 0.02, 0.06, 0);
+        const palm = makeSoftBox(0.11, 0.1, 0.11, skin, 0.024);
+        palm.position.set(side * -0.05, -0.22, -0.07);
         group.add(sleeve, palm);
-        group.position.set(side * 0.4, -0.22, -0.4);
-        group.rotation.x = 0.2;
-        group.rotation.y = side * 0.08;
-        group.rotation.z = side * 0.06;
+        group.position.set(side * 0.4, -0.04, -0.38);
         return group;
     }
 
     const left = makeHand(-1);
     const right = makeHand(1);
-    const chest = makeSoftBox(0.28, 0.14, 0.12, black, 0.025);
-    chest.position.set(0, -0.3, -0.48);
-    chest.rotation.x = 0.5;
-    const zipper = makeSoftBox(0.012, 0.1, 0.018, 0x3a3a3a, 0.004);
-    zipper.position.set(0, -0.3, -0.55);
-    zipper.rotation.x = 0.5;
-    hands.add(left, right, chest, zipper);
+    hands.add(left, right);
     hands.userData = { left, right };
     return hands;
 }
@@ -722,8 +713,8 @@ if (typeof THREE === 'undefined') {
             const walk = player.userData.walk;
             viewHands.position.set(Math.cos(walk) * 0.012, Math.sin(walk) * 0.018, 0);
             viewHands.rotation.set(0, 0, 0);
-            viewHands.userData.left.rotation.x = 0.2 + Math.sin(walk) * 0.06;
-            viewHands.userData.right.rotation.x = 0.2 + Math.sin(walk + Math.PI) * 0.06;
+            viewHands.userData.left.rotation.set(0, 0, 0);
+            viewHands.userData.right.rotation.set(0, 0, 0);
             const pitch = lookPitch - 0.18;
             const lookX = Math.sin(rot) * Math.cos(pitch);
             const lookY = Math.sin(pitch);
