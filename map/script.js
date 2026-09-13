@@ -1,6 +1,8 @@
 const ARENA_WIDTH = 1000;
 const ARENA_HEIGHT = 560;
 const MOVE_SPEED = 0.18;
+const SPRINT_SPEED = 0.32;
+const SPRINT_HAND_ANGLE = Math.PI / 6;
 const TURN_SPEED = 0.045;
 const JUMP_POWER = 0.28;
 const GRAVITY = 0.012;
@@ -468,7 +470,7 @@ if (typeof THREE === 'undefined') {
 
     const player = makePlayer();
     scene.add(player);
-    const playerState = { vy: 0, onGround: true, onLadder: false, spaceClimb: false };
+    const playerState = { vy: 0, onGround: true, onLadder: false, spaceClimb: false, sprinting: false };
 
     const doors = [
         makeDoor(-8, 8, 0xc8102e, 'The Great Mscape', '/'),
@@ -598,6 +600,7 @@ if (typeof THREE === 'undefined') {
 
         if (near && (wantUp || wantDown || midClimb) && (!atRoof || wantDown) && player.position.y <= near.top + 0.12) {
             playerState.onLadder = true;
+            playerState.sprinting = false;
             if (keys.Space) {
                 playerState.spaceClimb = true;
             }
@@ -654,15 +657,18 @@ if (typeof THREE === 'undefined') {
         }
 
         const moving = moveX !== 0 || moveZ !== 0;
+        const sprinting = moving && (keys.ShiftLeft || keys.ShiftRight);
+        playerState.sprinting = sprinting;
+        const speed = sprinting ? SPRINT_SPEED : MOVE_SPEED;
         if (moving) {
             const length = Math.hypot(moveX, moveZ) || 1;
-            player.position.x += (moveX / length) * MOVE_SPEED;
-            player.position.z += (moveZ / length) * MOVE_SPEED;
-            player.userData.walk += 0.22;
+            player.position.x += (moveX / length) * speed;
+            player.position.z += (moveZ / length) * speed;
+            player.userData.walk += sprinting ? 0.38 : 0.22;
         } else {
             player.userData.walk *= 0.85;
         }
-        const swing = Math.sin(player.userData.walk) * (moving ? 0.7 : 0.08);
+        const swing = Math.sin(player.userData.walk) * (moving ? (sprinting ? 1.05 : 0.7) : 0.08);
         player.userData.leftArm.rotation.x = swing;
         player.userData.rightArm.rotation.x = -swing;
         player.userData.leftLeg.rotation.x = -swing;
@@ -697,8 +703,8 @@ if (typeof THREE === 'undefined') {
             return;
         }
         hintEl.textContent = viewMode === 'first'
-            ? 'A left, D right, W forward. Walk to a ladder and press Space to climb. Press 2 for second person.'
-            : 'A left, D right, W forward. Walk to a ladder and press Space to climb. Press 1 for first person.';
+            ? 'Hold Shift to sprint. Walk to a ladder and press Space to climb. Press 2 for second person.'
+            : 'Hold Shift to sprint. Walk to a ladder and press Space to climb. Press 1 for first person.';
     }
 
     function updateCamera() {
@@ -714,10 +720,11 @@ if (typeof THREE === 'undefined') {
         const headY = player.position.y + 2.14;
         if (first) {
             const walk = player.userData.walk;
+            const handAngle = playerState.sprinting ? SPRINT_HAND_ANGLE : 0;
             viewHands.position.set(Math.cos(walk) * 0.012, Math.sin(walk) * 0.018, 0);
             viewHands.rotation.set(0, 0, 0);
-            viewHands.userData.left.rotation.set(0, 0, 0);
-            viewHands.userData.right.rotation.set(0, 0, 0);
+            viewHands.userData.left.rotation.set(handAngle, 0, 0);
+            viewHands.userData.right.rotation.set(handAngle, 0, 0);
             const pitch = lookPitch - 0.18;
             const lookX = Math.sin(rot) * Math.cos(pitch);
             const lookY = Math.sin(pitch);
