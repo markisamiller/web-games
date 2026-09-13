@@ -15,6 +15,7 @@ const playBtn = document.getElementById('play-btn');
 const viewEl = document.getElementById('view');
 
 let playing = false;
+let firstPerson = false;
 let starsGot = 0;
 let nearDoor = null;
 let doorTimer = 0;
@@ -206,16 +207,36 @@ if (typeof THREE === 'undefined') {
         player.position.z = Math.max(-34, Math.min(34, player.position.z));
     }
 
+    function updateHint() {
+        if (starsGot === STAR_COUNT) {
+            hintEl.textContent = 'You got every star!';
+            return;
+        }
+        hintEl.textContent = firstPerson
+            ? 'W A S D move, Space jump. Press 1 to look from behind.'
+            : 'W A S D move, Space jump. Press 1 for first person.';
+    }
+
     function updateCamera() {
         const rot = player.rotation.y;
-        const eyeY = player.position.y + 1.75;
-        camera.position.set(player.position.x, eyeY, player.position.z);
-        camera.lookAt(
-            player.position.x + Math.sin(rot),
-            eyeY,
-            player.position.z - Math.cos(rot)
+        if (firstPerson) {
+            const eyeY = player.position.y + 1.75;
+            camera.position.set(player.position.x, eyeY, player.position.z);
+            camera.lookAt(
+                player.position.x + Math.sin(rot),
+                eyeY,
+                player.position.z - Math.cos(rot)
+            );
+            player.visible = false;
+            return;
+        }
+        player.visible = true;
+        camera.position.set(
+            player.position.x - Math.sin(rot) * 9,
+            player.position.y + 5.2,
+            player.position.z + Math.cos(rot) * 9
         );
-        player.visible = false;
+        camera.lookAt(player.position.x, player.position.y + 1.4, player.position.z);
     }
 
     function grabStars() {
@@ -286,6 +307,10 @@ if (typeof THREE === 'undefined') {
         keys[event.code] = true;
         if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(event.code)) {
             event.preventDefault();
+        }
+        if (playing && !event.repeat && (event.code === 'Digit1' || event.code === 'Numpad1')) {
+            firstPerson = !firstPerson;
+            updateHint();
         }
     });
     window.addEventListener('keyup', (event) => {
