@@ -31,6 +31,22 @@ let nearDoor = null;
 let doorTimer = 0;
 let rightHeld = false;
 let lookPitch = 0;
+let lookYaw = 0;
+const HEAD_TURN_MAX = 1.05;
+
+function wrapAngle(angle) {
+    while (angle > Math.PI) {
+        angle -= Math.PI * 2;
+    }
+    while (angle < -Math.PI) {
+        angle += Math.PI * 2;
+    }
+    return angle;
+}
+
+function turnGap(from, to) {
+    return wrapAngle(to - from);
+}
 
 function fitGame() {
     const wrap = document.querySelector('.game-wrap');
@@ -597,6 +613,25 @@ if (typeof THREE === 'undefined') {
 
     updateCity();
 
+    function updateLookPose(moving) {
+        const gap = turnGap(player.rotation.y, lookYaw);
+        if (Math.abs(gap) > HEAD_TURN_MAX) {
+            player.rotation.y = wrapAngle(player.rotation.y + gap - Math.sign(gap) * HEAD_TURN_MAX);
+        }
+        if (moving) {
+            const walkGap = turnGap(player.rotation.y, lookYaw);
+            player.rotation.y = wrapAngle(player.rotation.y + walkGap * 0.22);
+        }
+        const head = player.userData.head;
+        head.rotation.y = Math.max(-HEAD_TURN_MAX, Math.min(HEAD_TURN_MAX, turnGap(player.rotation.y, lookYaw)));
+        head.rotation.x = viewMode === 'first' ? 0 : -lookPitch;
+    }
+
+    function wantsWalk() {
+        return keys.KeyA || keys.ArrowLeft || keys.KeyD || keys.ArrowRight ||
+            keys.KeyW || keys.ArrowUp || keys.KeyS || keys.ArrowDown;
+    }
+
     function updatePlayer() {
         const rot = player.rotation.y;
         const forwardX = Math.sin(rot);
@@ -724,13 +759,11 @@ if (typeof THREE === 'undefined') {
     }
 
     function updateCamera() {
-        const rot = player.rotation.y;
+        const rot = lookYaw;
         const first = viewMode === 'first';
-        const head = player.userData.head;
-        head.rotation.x = first ? 0 : -lookPitch;
         player.visible = !first;
         viewHands.visible = first;
-        head.visible = !first;
+        player.userData.head.visible = !first;
         player.userData.leftArm.visible = true;
         player.userData.rightArm.visible = true;
         const headY = player.position.y + 2.14;
@@ -835,7 +868,9 @@ if (typeof THREE === 'undefined') {
             x: player.position.x,
             y: player.position.y,
             z: player.position.z,
-            rotY: player.rotation.y
+            rotY: player.rotation.y,
+            headY: player.userData.head.rotation.y,
+            headX: player.userData.head.rotation.x
         };
     }
 
@@ -905,7 +940,9 @@ if (typeof THREE === 'undefined') {
             seen.add(pose.id);
             const body = getRemote(pose.id);
             body.position.set(pose.x, pose.y, pose.z);
-            body.rotation.y = pose.rotY;
+            body.rotation.y = pose.rotY || 0;
+            body.userData.head.rotation.y = pose.headY || 0;
+            body.userData.head.rotation.x = pose.headX || 0;
         });
         remotes.forEach((body, id) => {
             if (!seen.has(id)) {
@@ -924,7 +961,15 @@ if (typeof THREE === 'undefined') {
     function hostWorld() {
         const players = [myPose()];
         net.poses.forEach((pose, id) => {
-            players.push({ id, x: pose.x, y: pose.y, z: pose.z, rotY: pose.rotY });
+            players.push({
+                id,
+                x: pose.x,
+                y: pose.y,
+                z: pose.z,
+                rotY: pose.rotY,
+                headY: pose.headY,
+                headX: pose.headX
+            });
         });
         applyWorld(players);
         broadcast({ type: 'world', players });
@@ -953,7 +998,9 @@ if (typeof THREE === 'undefined') {
                 x: data.x,
                 y: data.y,
                 z: data.z,
-                rotY: data.rotY
+                rotY: data.rotY,
+                headY: data.headY,
+                headX: data.headX
             });
         });
         conn.on('close', () => {
@@ -1129,10 +1176,13 @@ if (typeof THREE === 'undefined') {
         const dt = last ? Math.min(40, now - last) : 16;
         last = now;
         if (playing) {
+            updateLookPose(wantsWalk() && !playerState.onLadder);
             updatePlayer();
             grabStars();
             checkDoors(dt);
             syncNet(now);
+        } else {
+            updateLookPose(false);
         }
         updateWave();
         updateCamera();
@@ -1189,7 +1239,7 @@ if (typeof THREE === 'undefined') {
         if (!playing || !rightHeld) {
             return;
         }
-        player.rotation.y -= event.movementX * 0.006;
+        lookYaw = wrapAngle(lookYaw - event.movementX * 0.006);
         lookPitch -= event.movementY * 0.005;
         lookPitch = Math.max(-1.1, Math.min(1.1, lookPitch));
     });
