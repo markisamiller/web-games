@@ -40,21 +40,50 @@ function makeBox(width, height, depth, color) {
     return mesh;
 }
 
+function makeLimb(width, height, depth, color) {
+    const pivot = new THREE.Group();
+    const mesh = makeBox(width, height, depth, color);
+    mesh.position.y = -height / 2;
+    pivot.add(mesh);
+    return pivot;
+}
+
 function makePlayer() {
     const body = new THREE.Group();
-    const torso = makeBox(0.9, 1.2, 0.7, 0xc8102e);
-    torso.position.y = 0.9;
-    const head = new THREE.Mesh(
-        new THREE.SphereGeometry(0.38, 16, 16),
+    const skin = 0xf4c27a;
+    const shirt = 0xc8102e;
+    const pants = 0x2a4a8b;
+
+    const torso = makeBox(0.85, 1.05, 0.55, shirt);
+    torso.position.y = 1.15;
+
+    const head = new THREE.Group();
+    const skull = new THREE.Mesh(
+        new THREE.SphereGeometry(0.4, 16, 16),
         new THREE.MeshLambertMaterial({ color: 0xffd100 })
     );
-    head.position.y = 1.75;
     const eyeL = makeBox(0.1, 0.1, 0.1, 0x1a0f08);
-    eyeL.position.set(-0.12, 1.82, -0.32);
+    eyeL.position.set(-0.14, 0.08, -0.34);
     const eyeR = eyeL.clone();
-    eyeR.position.x = 0.12;
-    body.add(torso, head, eyeL, eyeR);
+    eyeR.position.x = 0.14;
+    const smile = makeBox(0.22, 0.06, 0.08, 0x1a0f08);
+    smile.position.set(0, -0.12, -0.34);
+    head.add(skull, eyeL, eyeR, smile);
+    head.position.y = 1.95;
+
+    const leftArm = makeLimb(0.22, 0.85, 0.22, skin);
+    leftArm.position.set(-0.56, 1.55, 0);
+    const rightArm = makeLimb(0.22, 0.85, 0.22, skin);
+    rightArm.position.set(0.56, 1.55, 0);
+
+    const leftLeg = makeLimb(0.26, 0.9, 0.26, pants);
+    leftLeg.position.set(-0.22, 0.62, 0);
+    const rightLeg = makeLimb(0.26, 0.9, 0.26, pants);
+    rightLeg.position.set(0.22, 0.62, 0);
+
+    body.add(torso, head, leftArm, rightArm, leftLeg, rightLeg);
     body.position.set(0, 0, 16);
+    body.userData = { head, leftArm, rightArm, leftLeg, rightLeg, walk: 0 };
     return body;
 }
 
@@ -188,7 +217,15 @@ if (typeof THREE === 'undefined') {
         if (move !== 0) {
             player.position.x += Math.sin(player.rotation.y) * MOVE_SPEED * move;
             player.position.z -= Math.cos(player.rotation.y) * MOVE_SPEED * move;
+            player.userData.walk += 0.22;
+        } else {
+            player.userData.walk *= 0.85;
         }
+        const swing = Math.sin(player.userData.walk) * (move !== 0 ? 0.7 : 0.08);
+        player.userData.leftArm.rotation.x = swing;
+        player.userData.rightArm.rotation.x = -swing;
+        player.userData.leftLeg.rotation.x = -swing;
+        player.userData.rightLeg.rotation.x = swing;
 
         if (keys.Space && playerState.onGround) {
             playerState.vy = JUMP_POWER;
@@ -219,18 +256,22 @@ if (typeof THREE === 'undefined') {
 
     function updateCamera() {
         const rot = player.rotation.y;
+        player.visible = true;
+        player.userData.head.visible = viewMode !== 'first';
         if (viewMode === 'first') {
-            const eyeY = player.position.y + 1.75;
-            camera.position.set(player.position.x, eyeY, player.position.z);
+            const eyeY = player.position.y + 1.95;
+            camera.position.set(
+                player.position.x + Math.sin(rot) * 0.18,
+                eyeY,
+                player.position.z - Math.cos(rot) * 0.18
+            );
             camera.lookAt(
                 player.position.x + Math.sin(rot),
                 eyeY,
                 player.position.z - Math.cos(rot)
             );
-            player.visible = false;
             return;
         }
-        player.visible = true;
         camera.position.set(
             player.position.x - Math.sin(rot) * 9,
             player.position.y + 5.2,
