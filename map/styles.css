@@ -149,10 +149,26 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 24px;
+    justify-content: flex-start;
+    padding: 20px 28px 28px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-color: #ffd100 #10202c;
     background: rgba(8, 20, 28, 0.82);
     text-align: center;
+}
+
+.panel::-webkit-scrollbar {
+    width: 14px;
+}
+
+.panel::-webkit-scrollbar-track {
+    background: #10202c;
+}
+
+.panel::-webkit-scrollbar-thumb {
+    background: #ffd100;
+    border-radius: 8px;
 }
 
 .panel[hidden] {

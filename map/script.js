@@ -1276,6 +1276,7 @@ if (typeof THREE === 'undefined') {
         accountWho.textContent = `Signed in as ${name}`;
         accountScreen.hidden = true;
         startScreen.hidden = false;
+        startScreen.scrollTop = 0;
         setLocalPerson(name);
     }
 
@@ -1284,6 +1285,7 @@ if (typeof THREE === 'undefined') {
         accountWho.textContent = 'Not signed in';
         startScreen.hidden = true;
         accountScreen.hidden = false;
+        accountScreen.scrollTop = 0;
         setAccountError('');
     }
 
