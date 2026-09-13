@@ -15,7 +15,7 @@ const playBtn = document.getElementById('play-btn');
 const viewEl = document.getElementById('view');
 
 let playing = false;
-let firstPerson = false;
+let viewMode = 'second';
 let starsGot = 0;
 let nearDoor = null;
 let doorTimer = 0;
@@ -212,14 +212,14 @@ if (typeof THREE === 'undefined') {
             hintEl.textContent = 'You got every star!';
             return;
         }
-        hintEl.textContent = firstPerson
-            ? 'W A S D move, Space jump. Press 1 to look from behind.'
+        hintEl.textContent = viewMode === 'first'
+            ? 'W A S D move, Space jump. Press 2 for second person.'
             : 'W A S D move, Space jump. Press 1 for first person.';
     }
 
     function updateCamera() {
         const rot = player.rotation.y;
-        if (firstPerson) {
+        if (viewMode === 'first') {
             const eyeY = player.position.y + 1.75;
             camera.position.set(player.position.x, eyeY, player.position.z);
             camera.lookAt(
@@ -309,7 +309,11 @@ if (typeof THREE === 'undefined') {
             event.preventDefault();
         }
         if (playing && !event.repeat && (event.code === 'Digit1' || event.code === 'Numpad1')) {
-            firstPerson = !firstPerson;
+            viewMode = 'first';
+            updateHint();
+        }
+        if (playing && !event.repeat && (event.code === 'Digit2' || event.code === 'Numpad2')) {
+            viewMode = 'second';
             updateHint();
         }
     });
