@@ -198,6 +198,32 @@ function makePlayer() {
     return body;
 }
 
+function makeViewHands() {
+    const hands = new THREE.Group();
+    const skin = 0xfbfbfb;
+    const black = 0x0a0a0a;
+
+    function makeHand(side) {
+        const group = new THREE.Group();
+        const sleeve = makeSoftBox(0.05, 0.06, 0.1, black, 0.012);
+        sleeve.position.set(0, 0.03, 0.05);
+        const palm = makeSoftBox(0.055, 0.045, 0.07, skin, 0.015);
+        palm.position.set(0, -0.008, -0.02);
+        group.add(sleeve, palm);
+        group.position.set(side * 0.34, -0.26, -0.5);
+        group.rotation.x = 0.55;
+        group.rotation.y = side * 0.28;
+        group.rotation.z = side * -0.06;
+        return group;
+    }
+
+    const left = makeHand(-1);
+    const right = makeHand(1);
+    hands.add(left, right);
+    hands.userData = { left, right };
+    return hands;
+}
+
 function makeDoor(x, z, color, name, href) {
     const group = new THREE.Group();
     const left = makeBox(0.5, 4.2, 0.5, color);
@@ -255,7 +281,10 @@ if (typeof THREE === 'undefined') {
     scene.background = new THREE.Color(0x7ec8e3);
     scene.fog = new THREE.Fog(0x7ec8e3, 28, 70);
 
-    const camera = new THREE.PerspectiveCamera(60, ARENA_WIDTH / ARENA_HEIGHT, 0.1, 120);
+    const camera = new THREE.PerspectiveCamera(60, ARENA_WIDTH / ARENA_HEIGHT, 0.08, 120);
+    scene.add(camera);
+    const viewHands = makeViewHands();
+    camera.add(viewHands);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(ARENA_WIDTH, ARENA_HEIGHT);
     renderer.shadowMap.enabled = true;
@@ -370,9 +399,15 @@ if (typeof THREE === 'undefined') {
 
     function updateCamera() {
         const rot = player.rotation.y;
-        player.visible = true;
-        player.userData.head.visible = viewMode !== 'first';
-        if (viewMode === 'first') {
+        const first = viewMode === 'first';
+        player.visible = !first;
+        viewHands.visible = first;
+        player.userData.head.visible = !first;
+        if (first) {
+            const walk = player.userData.walk;
+            viewHands.position.set(Math.cos(walk) * 0.012, Math.sin(walk) * 0.018, 0);
+            viewHands.userData.left.rotation.x = 0.28 + Math.sin(walk) * 0.1;
+            viewHands.userData.right.rotation.x = 0.28 + Math.sin(walk + Math.PI) * 0.1;
             const eyeY = player.position.y + 2.14;
             const lookX = Math.sin(rot) * Math.cos(lookPitch);
             const lookY = Math.sin(lookPitch);
