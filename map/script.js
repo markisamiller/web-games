@@ -710,41 +710,45 @@ if (typeof THREE === 'undefined') {
     function updateCamera() {
         const rot = player.rotation.y;
         const first = viewMode === 'first';
+        const head = player.userData.head;
+        head.rotation.x = -lookPitch;
         player.visible = !first;
         viewHands.visible = first;
-        player.userData.head.visible = !first;
+        head.visible = !first;
         player.userData.leftArm.visible = true;
         player.userData.rightArm.visible = true;
+        const headY = player.position.y + 2.14;
         if (first) {
             const walk = player.userData.walk;
             viewHands.position.set(Math.cos(walk) * 0.012, Math.sin(walk) * 0.018, 0);
             viewHands.rotation.set(0, 0, 0);
             viewHands.userData.left.rotation.x = 0.28 + Math.sin(walk) * 0.1;
             viewHands.userData.right.rotation.x = 0.28 + Math.sin(walk + Math.PI) * 0.1;
-            const eyeY = player.position.y + 2.14;
             const pitch = lookPitch - 0.18;
             const lookX = Math.sin(rot) * Math.cos(pitch);
             const lookY = Math.sin(pitch);
             const lookZ = -Math.cos(rot) * Math.cos(pitch);
             camera.position.set(
-                player.position.x + lookX * 0.04,
-                eyeY,
-                player.position.z + lookZ * 0.04
+                player.position.x + lookX * 0.08,
+                headY,
+                player.position.z + lookZ * 0.08
             );
             camera.lookAt(
                 player.position.x + lookX,
-                eyeY + lookY,
+                headY + lookY,
                 player.position.z + lookZ
             );
             return;
         }
-        const back = 7.4 * Math.cos(lookPitch * 0.7);
+        const pitch = lookPitch * 0.7;
+        const back = 7.4 * Math.max(0.55, Math.cos(pitch));
+        const camY = Math.max(headY + 0.85, player.position.y + 3.4 - lookPitch * 2.4);
         camera.position.set(
             player.position.x - Math.sin(rot) * back,
-            player.position.y + 3.6 - lookPitch * 3.2,
+            camY,
             player.position.z + Math.cos(rot) * back
         );
-        camera.lookAt(player.position.x, player.position.y + 1.4, player.position.z);
+        camera.lookAt(player.position.x, headY, player.position.z);
     }
 
     function grabStars() {
