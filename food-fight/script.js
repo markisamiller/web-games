@@ -1328,6 +1328,9 @@ function setupHostConnection(conn) {
         if (data.type === 'keys') {
             net.inputs[conn.peer] = data.buttons || EMPTY_INPUT;
         }
+        if (data.type === 'pause-toggle') {
+            togglePause();
+        }
     });
     conn.on('close', () => {
         dropHostPlayer(conn.peer);
@@ -1480,6 +1483,25 @@ function buildMatchButtons() {
     });
 }
 
+function togglePause() {
+    if (!gameActive || fightEnding) {
+        return;
+    }
+    if (net.role === 'guest') {
+        sendTo(net.hostConn, { type: 'pause-toggle' });
+        return;
+    }
+    isPaused = !isPaused;
+    if (isPaused) {
+        showScreen('pause-screen');
+    } else {
+        hideMenus();
+    }
+    if (net.role === 'host') {
+        sendNetState(true);
+    }
+}
+
 window.addEventListener('keydown', (event) => {
     keys[event.code] = true;
 
@@ -1487,16 +1509,8 @@ window.addEventListener('keydown', (event) => {
         event.preventDefault();
     }
 
-    if (event.code === 'KeyP' && gameActive && net.role !== 'guest') {
-        isPaused = !isPaused;
-        if (isPaused) {
-            showScreen('pause-screen');
-        } else {
-            hideMenus();
-        }
-        if (net.role === 'host') {
-            sendNetState(true);
-        }
+    if (event.code === 'KeyP' && !event.repeat) {
+        togglePause();
     }
 });
 
@@ -1522,14 +1536,10 @@ document.getElementById('join-code').addEventListener('keydown', (event) => {
 document.getElementById('lobby-start-btn').addEventListener('click', startOnlineFight);
 document.getElementById('lobby-leave-btn').addEventListener('click', goToMenu);
 document.getElementById('resume-btn').addEventListener('click', () => {
-    if (net.role === 'guest') {
+    if (!isPaused) {
         return;
     }
-    isPaused = false;
-    hideMenus();
-    if (net.role === 'host') {
-        sendNetState(true);
-    }
+    togglePause();
 });
 document.getElementById('pause-menu-btn').addEventListener('click', goToMenu);
 document.getElementById('rematch-btn').addEventListener('click', () => {
