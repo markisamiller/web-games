@@ -52,8 +52,47 @@ function makeRoundMesh(geometry, color) {
     return mesh;
 }
 
+function skinMaterial(color) {
+    return new THREE.MeshPhongMaterial({
+        color,
+        shininess: 90,
+        specular: 0x777777,
+        flatShading: false
+    });
+}
+
+function roundedBoxGeometry(width, height, depth, radius) {
+    const r = Math.min(radius, width * 0.2, height * 0.2, depth * 0.2);
+    const shape = new THREE.Shape();
+    const x = -width / 2;
+    const y = -height / 2;
+    shape.moveTo(x + r, y);
+    shape.lineTo(x + width - r, y);
+    shape.quadraticCurveTo(x + width, y, x + width, y + r);
+    shape.lineTo(x + width, y + height - r);
+    shape.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+    shape.lineTo(x + r, y + height);
+    shape.quadraticCurveTo(x, y + height, x, y + height - r);
+    shape.lineTo(x, y + r);
+    shape.quadraticCurveTo(x, y, x + r, y);
+    const inner = Math.max(0.03, depth - r * 2);
+    const geo = new THREE.ExtrudeGeometry(shape, {
+        depth: inner,
+        bevelEnabled: true,
+        bevelThickness: r,
+        bevelSize: r,
+        bevelSegments: 4,
+        curveSegments: 8
+    });
+    geo.translate(0, 0, -inner / 2 - r);
+    geo.computeVertexNormals();
+    return geo;
+}
+
 function makeSoftBox(width, height, depth, color) {
-    const mesh = makeBox(width, height, depth, color);
+    const mesh = new THREE.Mesh(roundedBoxGeometry(width, height, depth, 0.1), skinMaterial(color));
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
     return mesh;
 }
 
@@ -81,7 +120,8 @@ function makePlayer() {
     zipper.position.set(0, 1.42, 0.3);
 
     const head = new THREE.Group();
-    const skull = makeRoundMesh(new THREE.SphereGeometry(0.5, 20, 20), skin);
+    const skull = new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 32), skinMaterial(skin));
+    skull.castShadow = true;
 
     const hairCap = makeRoundMesh(new THREE.SphereGeometry(0.46, 16, 12), hair);
     hairCap.scale.set(1.08, 0.55, 1.08);
@@ -198,7 +238,10 @@ if (typeof THREE === 'undefined') {
     sun.position.set(12, 22, 8);
     sun.castShadow = true;
     scene.add(sun);
-    scene.add(new THREE.HemisphereLight(0xbcdcff, 0x4a7a32, 0.7));
+    scene.add(new THREE.HemisphereLight(0xbcdcff, 0x4a7a32, 0.85));
+    const fill = new THREE.DirectionalLight(0xffffff, 0.45);
+    fill.position.set(-8, 10, 12);
+    scene.add(fill);
 
     const ground = new THREE.Mesh(
         new THREE.PlaneGeometry(80, 80),
