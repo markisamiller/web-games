@@ -287,6 +287,44 @@ function cityHash(cx, cz) {
     return Math.abs((cx * 73856093) ^ (cz * 19349663) ^ (cx * cz * 83492791));
 }
 
+function addCityBuilding(chunk, originX, originZ, lx, lz, width, height, depth, color, hasLadder, faceX, faceZ) {
+    const building = new THREE.Group();
+    const wall = makeBox(width, height, depth, color);
+    wall.position.y = height / 2;
+    building.add(wall);
+    addWindows(building, width, height, depth, Math.abs(Math.round(originX + lx * 17 + lz * 31)));
+    building.position.set(lx, 0, lz);
+    chunk.add(building);
+    chunk.userData.buildings.push({
+        x: originX + lx,
+        z: originZ + lz,
+        w: width,
+        d: depth,
+        h: height
+    });
+
+    if (!hasLadder) {
+        return;
+    }
+
+    const gap = 0.58;
+    const ladderX = lx + faceX * (width / 2 + gap);
+    const ladderZ = lz + faceZ * (depth / 2 + gap);
+    const ladder = makeLadder(height);
+    ladder.position.set(ladderX, 0, ladderZ);
+    if (faceX !== 0) {
+        ladder.rotation.y = Math.PI / 2;
+    }
+    chunk.add(ladder);
+    chunk.userData.ladders.push({
+        x: originX + ladderX,
+        z: originZ + ladderZ,
+        top: height,
+        inX: -faceX,
+        inZ: -faceZ
+    });
+}
+
 function addWindows(building, width, height, depth, seed) {
     const rows = Math.min(5, Math.max(1, Math.floor(height / 3)));
     for (let row = 0; row < rows; row += 1) {
@@ -299,6 +337,22 @@ function addWindows(building, width, height, depth, seed) {
             building.add(window);
         }
     }
+}
+
+function makeLadder(height) {
+    const ladder = new THREE.Group();
+    const railL = makeBox(0.1, height, 0.1, 0x6b3d1f);
+    railL.position.set(-0.32, height / 2, 0);
+    const railR = makeBox(0.1, height, 0.1, 0x6b3d1f);
+    railR.position.set(0.32, height / 2, 0);
+    ladder.add(railL, railR);
+    const rungs = Math.max(3, Math.floor(height / 0.5));
+    for (let i = 0; i < rungs; i += 1) {
+        const rung = makeBox(0.74, 0.08, 0.1, 0xd2a05a);
+        rung.position.y = 0.28 + i * 0.5;
+        ladder.add(rung);
+    }
+    return ladder;
 }
 
 function makeLamp(x, z) {
@@ -322,6 +376,7 @@ function makeCityChunk(cx, cz) {
     const originZ = cz * CITY_BLOCK;
     chunk.position.set(originX, 0, originZ);
     chunk.userData.buildings = [];
+    chunk.userData.ladders = [];
 
     const road = new THREE.Mesh(new THREE.PlaneGeometry(CITY_BLOCK, CITY_BLOCK), roadMat);
     road.rotation.x = -Math.PI / 2;
@@ -343,6 +398,7 @@ function makeCityChunk(cx, cz) {
         square.position.y = 0.04;
         chunk.add(square);
         chunk.add(makeLamp(-4, -4), makeLamp(4, -4), makeLamp(-4, 4), makeLamp(4, 4));
+        addCityBuilding(chunk, originX, originZ, 0, -10, 6, 7, 6, 0x4a5568, 1, 0, 1);
         return chunk;
     }
 
@@ -355,19 +411,24 @@ function makeCityChunk(cx, cz) {
         const width = 6 + (seed + index * 5) % 3;
         const depth = 6 + (seed + index * 11) % 3;
         const color = BUILDING_COLORS[(seed + index) % BUILDING_COLORS.length];
-        const building = new THREE.Group();
-        const wall = makeBox(width, height, depth, color);
-        wall.position.y = height / 2;
-        building.add(wall);
-        addWindows(building, width, height, depth, seed + index);
-        building.position.set(lx, 0, lz);
-        chunk.add(building);
-        chunk.userData.buildings.push({
-            x: originX + lx,
-            z: originZ + lz,
-            w: width,
-            d: depth
-        });
+        const towardX = lx > 0 ? -1 : 1;
+        const towardZ = lz > 0 ? -1 : 1;
+        const faceZ = Math.abs(lz) >= Math.abs(lx);
+        const hasLadder = index === 0 || (seed + index) % 3 === 0;
+        addCityBuilding(
+            chunk,
+            originX,
+            originZ,
+            lx,
+            lz,
+            width,
+            height,
+            depth,
+            color,
+            hasLadder ? 1 : 0,
+            faceZ ? 0 : towardX,
+            faceZ ? towardZ : 0
+        );
     });
 
     if (seed % 2 === 0) {
@@ -413,7 +474,7 @@ if (typeof THREE === 'undefined') {
 
     const player = makePlayer();
     scene.add(player);
-    const playerState = { vy: 0, onGround: true };
+    const playerState = { vy: 0, onGround: true, onLadder: false, spaceClimb: false };
 
     const doors = [
         makeDoor(-8, 8, 0xc8102e, 'The Great Mscape', '/'),
@@ -464,10 +525,49 @@ if (typeof THREE === 'undefined') {
         });
     }
 
+    function nearestLadder() {
+        let best = null;
+        let bestDist = 1.15;
+        cityChunks.forEach((chunk) => {
+            chunk.userData.ladders.forEach((ladder) => {
+                const dist = Math.hypot(player.position.x - ladder.x, player.position.z - ladder.z);
+                if (dist < bestDist) {
+                    best = ladder;
+                    bestDist = dist;
+                }
+            });
+        });
+        return best;
+    }
+
+    function roofUnderPlayer() {
+        let roof = 0;
+        cityChunks.forEach((chunk) => {
+            chunk.userData.buildings.forEach((building) => {
+                const hx = building.w / 2 - 0.2;
+                const hz = building.d / 2 - 0.2;
+                if (
+                    Math.abs(player.position.x - building.x) < hx &&
+                    Math.abs(player.position.z - building.z) < hz &&
+                    building.h > roof
+                ) {
+                    roof = building.h;
+                }
+            });
+        });
+        return roof;
+    }
+
     function bumpOutOfBuildings() {
+        if (playerState.onLadder) {
+            return;
+        }
         const radius = 0.55;
         cityChunks.forEach((chunk) => {
             chunk.userData.buildings.forEach((building) => {
+                if (player.position.y >= building.h - 0.3) {
+                    return;
+                }
                 const hx = building.w / 2 + radius;
                 const hz = building.d / 2 + radius;
                 const dx = player.position.x - building.x;
@@ -491,6 +591,54 @@ if (typeof THREE === 'undefined') {
         const forwardZ = -Math.cos(rot);
         const rightX = Math.cos(rot);
         const rightZ = Math.sin(rot);
+        const near = nearestLadder();
+        const wantUp = keys.Space || keys.KeyD || keys.ArrowRight || keys.ArrowUp;
+        const wantDown = keys.KeyS || keys.ArrowDown;
+        const midClimb = !!(
+            near &&
+            player.position.y > 0.12 &&
+            player.position.y < near.top - 0.1 &&
+            Math.hypot(player.position.x - near.x, player.position.z - near.z) < 1.35
+        );
+        const atRoof = !!(near && player.position.y >= near.top - 0.15);
+
+        if (near && (wantUp || wantDown || midClimb) && (!atRoof || wantDown) && player.position.y <= near.top + 0.12) {
+            playerState.onLadder = true;
+            if (keys.Space) {
+                playerState.spaceClimb = true;
+            }
+            playerState.vy = 0;
+            player.position.x = near.x;
+            player.position.z = near.z;
+            if (wantUp && !atRoof) {
+                player.position.y += 0.09;
+            }
+            if (wantDown) {
+                player.position.y -= 0.09;
+            }
+            if (player.position.y < 0) {
+                player.position.y = 0;
+            }
+            if (player.position.y >= near.top - 0.08 && !wantDown) {
+                player.position.y = near.top;
+                player.position.x = near.x + near.inX * 1.2;
+                player.position.z = near.z + near.inZ * 1.2;
+                playerState.onLadder = false;
+                playerState.onGround = true;
+            } else {
+                playerState.onGround = player.position.y <= 0.02;
+            }
+            player.userData.walk += wantUp || wantDown ? 0.18 : 0;
+            const climbSwing = Math.sin(player.userData.walk) * 0.45;
+            player.userData.leftArm.rotation.x = climbSwing;
+            player.userData.rightArm.rotation.x = -climbSwing;
+            player.userData.leftLeg.rotation.x = -climbSwing;
+            player.userData.rightLeg.rotation.x = climbSwing;
+            updateCity();
+            return;
+        }
+
+        playerState.onLadder = false;
 
         let moveX = 0;
         let moveZ = 0;
@@ -530,17 +678,23 @@ if (typeof THREE === 'undefined') {
         player.userData.leftLeg.rotation.x = -swing;
         player.userData.rightLeg.rotation.x = swing;
 
-        if (keys.Space && playerState.onGround) {
+        if (!keys.Space) {
+            playerState.spaceClimb = false;
+        }
+        if (keys.Space && playerState.onGround && !playerState.spaceClimb) {
             playerState.vy = JUMP_POWER;
             playerState.onGround = false;
         }
 
+        const floorY = roofUnderPlayer();
         playerState.vy -= GRAVITY;
         player.position.y += playerState.vy;
-        if (player.position.y <= 0) {
-            player.position.y = 0;
+        if (player.position.y <= floorY) {
+            player.position.y = floorY;
             playerState.vy = 0;
             playerState.onGround = true;
+        } else {
+            playerState.onGround = false;
         }
 
         bumpOutOfBuildings();
@@ -553,8 +707,8 @@ if (typeof THREE === 'undefined') {
             return;
         }
         hintEl.textContent = viewMode === 'first'
-            ? 'A left, W right, D forward. Hold right click to look. Press 2 for second person.'
-            : 'A left, W right, D forward. Hold right click to look. Press 1 for first person.';
+            ? 'Walk to a brown ladder. Press D or Space to climb. Press 2 for second person.'
+            : 'Walk to a brown ladder. Press D or Space to climb. Press 1 for first person.';
     }
 
     function updateCamera() {
