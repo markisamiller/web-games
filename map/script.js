@@ -23,6 +23,7 @@ let rightHeld = false;
 let lookPitch = 0;
 let handAimX = 0;
 let handAimY = 0;
+let handsParked = false;
 
 function fitGame() {
     const wrap = document.querySelector('.game-wrap');
@@ -401,7 +402,7 @@ if (typeof THREE === 'undefined') {
             return;
         }
         hintEl.textContent = viewMode === 'first'
-            ? 'Move the mouse to move your hands. Hold right click to look. Press 2 for second person.'
+            ? 'Move the mouse to move your hands. Left click puts them back. Hold right click to look. Press 2 for second person.'
             : 'Hold right click to look. Press 1 for first person.';
     }
 
@@ -536,7 +537,17 @@ if (typeof THREE === 'undefined') {
         event.preventDefault();
     });
     window.addEventListener('mousedown', (event) => {
-        if (!playing || event.button !== 2) {
+        if (!playing) {
+            return;
+        }
+        if (event.button === 0 && viewMode === 'first') {
+            handsParked = true;
+            handAimX = 0;
+            handAimY = 0;
+            event.preventDefault();
+            return;
+        }
+        if (event.button !== 2) {
             return;
         }
         rightHeld = true;
@@ -551,8 +562,11 @@ if (typeof THREE === 'undefined') {
         if (!playing) {
             return;
         }
+        if (handsParked && (Math.abs(event.movementX) > 3 || Math.abs(event.movementY) > 3)) {
+            handsParked = false;
+        }
         const box = viewEl.getBoundingClientRect();
-        if (box.width > 0 && box.height > 0) {
+        if (!handsParked && box.width > 0 && box.height > 0) {
             handAimX = Math.max(-1, Math.min(1, ((event.clientX - box.left) / box.width) * 2 - 1));
             handAimY = Math.max(-1, Math.min(1, -(((event.clientY - box.top) / box.height) * 2 - 1)));
         }
