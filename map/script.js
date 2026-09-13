@@ -19,6 +19,8 @@ let viewMode = 'second';
 let starsGot = 0;
 let nearDoor = null;
 let doorTimer = 0;
+let rightHeld = false;
+let lookPitch = 0;
 
 function fitGame() {
     const wrap = document.querySelector('.game-wrap');
@@ -263,8 +265,8 @@ if (typeof THREE === 'undefined') {
             return;
         }
         hintEl.textContent = viewMode === 'first'
-            ? 'W A S D move, Space jump. Press 2 for second person.'
-            : 'W A S D move, Space jump. Press 1 for first person.';
+            ? 'Hold right click to look. Press 2 for second person.'
+            : 'Hold right click to look. Press 1 for first person.';
     }
 
     function updateCamera() {
@@ -273,22 +275,26 @@ if (typeof THREE === 'undefined') {
         player.userData.head.visible = viewMode !== 'first';
         if (viewMode === 'first') {
             const eyeY = player.position.y + 1.95;
+            const lookX = Math.sin(rot) * Math.cos(lookPitch);
+            const lookY = Math.sin(lookPitch);
+            const lookZ = -Math.cos(rot) * Math.cos(lookPitch);
             camera.position.set(
-                player.position.x + Math.sin(rot) * 0.18,
+                player.position.x + lookX * 0.18,
                 eyeY,
-                player.position.z - Math.cos(rot) * 0.18
+                player.position.z + lookZ * 0.18
             );
             camera.lookAt(
-                player.position.x + Math.sin(rot),
-                eyeY,
-                player.position.z - Math.cos(rot)
+                player.position.x + lookX,
+                eyeY + lookY,
+                player.position.z + lookZ
             );
             return;
         }
+        const back = 9 * Math.cos(lookPitch * 0.7);
         camera.position.set(
-            player.position.x - Math.sin(rot) * 9,
-            player.position.y + 5.2,
-            player.position.z + Math.cos(rot) * 9
+            player.position.x - Math.sin(rot) * back,
+            player.position.y + 5.2 - lookPitch * 4,
+            player.position.z + Math.cos(rot) * back
         );
         camera.lookAt(player.position.x, player.position.y + 1.4, player.position.z);
     }
@@ -373,6 +379,30 @@ if (typeof THREE === 'undefined') {
     });
     window.addEventListener('keyup', (event) => {
         keys[event.code] = false;
+    });
+
+    document.getElementById('game').addEventListener('contextmenu', (event) => {
+        event.preventDefault();
+    });
+    window.addEventListener('mousedown', (event) => {
+        if (!playing || event.button !== 2) {
+            return;
+        }
+        rightHeld = true;
+        event.preventDefault();
+    });
+    window.addEventListener('mouseup', (event) => {
+        if (event.button === 2) {
+            rightHeld = false;
+        }
+    });
+    window.addEventListener('mousemove', (event) => {
+        if (!playing || !rightHeld) {
+            return;
+        }
+        player.rotation.y -= event.movementX * 0.006;
+        lookPitch -= event.movementY * 0.005;
+        lookPitch = Math.max(-1.1, Math.min(1.1, lookPitch));
     });
 
     fitGame();

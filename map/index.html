@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home World</title>
-    <link rel="stylesheet" href="/map/styles.css?v=round1">
+    <link rel="stylesheet" href="/map/styles.css?v=look1">
 </head>
 <body>
     <div class="game-wrap">
@@ -12,7 +12,7 @@
             <div id="view"></div>
             <div id="hud">
                 <span id="score">Stars: 0 / 8</span>
-                <span id="hint">W A S D move, Space jump. Press 1 for first person. Press 2 for second person.</span>
+                <span id="hint">Hold right click to look. Press 1 or 2 to change view.</span>
             </div>
             <div id="door-label" hidden></div>
             <div id="start-screen" class="panel">
@@ -20,12 +20,13 @@
                 <p>A new 3D game. Walk, jump, and grab stars.</p>
                 <p>Press 1 for first person (see out of your head).</p>
                 <p>Press 2 for second person (camera behind you).</p>
+                <p>Hold the right mouse button and move to look around.</p>
                 <p>Walk into a glowing door to play another game.</p>
                 <button id="play-btn" type="button">Play</button>
             </div>
         </div>
     </div>
     <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-    <script src="/map/script.js?v=round1"></script>
+    <script src="/map/script.js?v=look1"></script>
 </body>
 </html>
