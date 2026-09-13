@@ -208,7 +208,7 @@ function makePlayer() {
     rightLeg.position.set(0.2, 0.88, 0);
 
     body.add(torso, zipper, zipPull, head, leftArm, rightArm, leftLeg, rightLeg);
-    body.position.set(0, 0, 16);
+    body.position.set(0, 0, 6);
     body.userData = { head, leftArm, rightArm, leftLeg, rightLeg, walk: 0 };
     return body;
 }
@@ -284,31 +284,129 @@ function makeStar(x, z) {
     return star;
 }
 
-function makeTree(x, z) {
-    const tree = new THREE.Group();
-    const trunk = makeBox(0.35, 1.4, 0.35, 0x6b3410);
-    trunk.position.y = 0.7;
-    const leaves = new THREE.Mesh(
-        new THREE.ConeGeometry(1.1, 2.2, 8),
-        new THREE.MeshLambertMaterial({ color: 0x2f8f3a })
+const CITY_BLOCK = 28;
+const CITY_VIEW = 3;
+const BUILDING_COLORS = [0x4a5568, 0x6b7280, 0x3d4f6f, 0x5c6b7a, 0x2d3748, 0x7c5c4a, 0x4b5563];
+let windowMat;
+let roadMat;
+let lineMat;
+let walkMat;
+
+function cityMaterials() {
+    if (windowMat) {
+        return;
+    }
+    windowMat = new THREE.MeshBasicMaterial({ color: 0xffe08a });
+    roadMat = new THREE.MeshLambertMaterial({ color: 0x3a3f46 });
+    lineMat = new THREE.MeshLambertMaterial({ color: 0xf5d76e });
+    walkMat = new THREE.MeshLambertMaterial({ color: 0x8b9098 });
+}
+
+function cityHash(cx, cz) {
+    return Math.abs((cx * 73856093) ^ (cz * 19349663) ^ (cx * cz * 83492791));
+}
+
+function addWindows(building, width, height, depth, seed) {
+    const rows = Math.min(5, Math.max(1, Math.floor(height / 3)));
+    for (let row = 0; row < rows; row += 1) {
+        for (let col = 0; col < 2; col += 1) {
+            if ((seed + row * 3 + col) % 5 === 0) {
+                continue;
+            }
+            const window = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.65, 0.08), windowMat);
+            window.position.set(-width * 0.22 + col * width * 0.44, 1.4 + row * 2.1, depth / 2 + 0.05);
+            building.add(window);
+        }
+    }
+}
+
+function makeLamp(x, z) {
+    const lamp = new THREE.Group();
+    const pole = makeBox(0.12, 3.4, 0.12, 0x222222);
+    pole.position.y = 1.7;
+    const bulb = new THREE.Mesh(
+        new THREE.SphereGeometry(0.18, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xfff2b0 })
     );
-    leaves.position.y = 2.3;
-    leaves.castShadow = true;
-    const hit = makeHitBox(2.2, 3.4, 2.2, 0x66ff66);
-    hit.position.y = 1.7;
-    tree.add(trunk, leaves, hit);
-    tree.position.set(x, 0, z);
-    return tree;
+    bulb.position.y = 3.5;
+    lamp.add(pole, bulb);
+    lamp.position.set(x, 0, z);
+    return lamp;
+}
+
+function makeCityChunk(cx, cz) {
+    cityMaterials();
+    const chunk = new THREE.Group();
+    const originX = cx * CITY_BLOCK;
+    const originZ = cz * CITY_BLOCK;
+    chunk.position.set(originX, 0, originZ);
+    chunk.userData.buildings = [];
+
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(CITY_BLOCK, CITY_BLOCK), roadMat);
+    road.rotation.x = -Math.PI / 2;
+    road.receiveShadow = true;
+    chunk.add(road);
+
+    const stripeA = new THREE.Mesh(new THREE.PlaneGeometry(0.18, CITY_BLOCK * 0.7), lineMat);
+    stripeA.rotation.x = -Math.PI / 2;
+    stripeA.position.y = 0.03;
+    const stripeB = new THREE.Mesh(new THREE.PlaneGeometry(CITY_BLOCK * 0.7, 0.18), lineMat);
+    stripeB.rotation.x = -Math.PI / 2;
+    stripeB.position.y = 0.03;
+    chunk.add(stripeA, stripeB);
+
+    const plaza = cx === 0 && cz === 0;
+    if (plaza) {
+        const square = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), walkMat);
+        square.rotation.x = -Math.PI / 2;
+        square.position.y = 0.04;
+        chunk.add(square);
+        chunk.add(makeLamp(-4, -4), makeLamp(4, -4), makeLamp(-4, 4), makeLamp(4, 4));
+        return chunk;
+    }
+
+    const seed = cityHash(cx, cz);
+    const lots = [
+        [-7.5, -7.5], [7.5, -7.5], [-7.5, 7.5], [7.5, 7.5]
+    ];
+    lots.forEach(([lx, lz], index) => {
+        const height = 5 + (seed + index * 19) % 16;
+        const width = 6 + (seed + index * 5) % 3;
+        const depth = 6 + (seed + index * 11) % 3;
+        const color = BUILDING_COLORS[(seed + index) % BUILDING_COLORS.length];
+        const building = new THREE.Group();
+        const wall = makeBox(width, height, depth, color);
+        wall.position.y = height / 2;
+        const hit = makeHitBox(width, height, depth, 0x88aaff);
+        hit.position.y = height / 2;
+        building.add(wall, hit);
+        addWindows(building, width, height, depth, seed + index);
+        building.position.set(lx, 0, lz);
+        chunk.add(building);
+        chunk.userData.buildings.push({
+            x: originX + lx,
+            z: originZ + lz,
+            w: width,
+            d: depth
+        });
+    });
+
+    if (seed % 2 === 0) {
+        chunk.add(makeLamp(0, -3));
+    } else {
+        chunk.add(makeLamp(3, 0));
+    }
+    return chunk;
 }
 
 if (typeof THREE === 'undefined') {
     hintEl.textContent = 'Could not load the 3D world. Check the internet.';
 } else {
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x7ec8e3);
-    scene.fog = new THREE.Fog(0x7ec8e3, 28, 70);
+    scene.background = new THREE.Color(0x6f8eaa);
+    scene.fog = new THREE.Fog(0x6f8eaa, 40, 95);
 
-    const camera = new THREE.PerspectiveCamera(60, ARENA_WIDTH / ARENA_HEIGHT, 0.08, 120);
+    const camera = new THREE.PerspectiveCamera(60, ARENA_WIDTH / ARENA_HEIGHT, 0.08, 160);
     scene.add(camera);
     const viewHands = makeViewHands();
     camera.add(viewHands);
@@ -317,30 +415,22 @@ if (typeof THREE === 'undefined') {
     renderer.shadowMap.enabled = true;
     viewEl.appendChild(renderer.domElement);
 
-    const sun = new THREE.DirectionalLight(0xfff4d2, 1.1);
-    sun.position.set(12, 22, 8);
+    const sun = new THREE.DirectionalLight(0xfff1d0, 1.05);
+    sun.position.set(18, 30, 10);
     sun.castShadow = true;
     scene.add(sun);
-    scene.add(new THREE.HemisphereLight(0xbcdcff, 0x4a7a32, 0.85));
-    const fill = new THREE.DirectionalLight(0xffffff, 0.45);
-    fill.position.set(-8, 10, 12);
+    scene.add(new THREE.HemisphereLight(0xb8c8d8, 0x3a3f46, 0.8));
+    const fill = new THREE.DirectionalLight(0xffffff, 0.35);
+    fill.position.set(-10, 12, 8);
     scene.add(fill);
 
     const ground = new THREE.Mesh(
-        new THREE.PlaneGeometry(80, 80),
-        new THREE.MeshLambertMaterial({ color: 0x6db24a })
+        new THREE.PlaneGeometry(220, 220),
+        new THREE.MeshLambertMaterial({ color: 0x2f3338 })
     );
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     scene.add(ground);
-
-    const path = new THREE.Mesh(
-        new THREE.PlaneGeometry(6, 36),
-        new THREE.MeshLambertMaterial({ color: 0xd7b36a })
-    );
-    path.rotation.x = -Math.PI / 2;
-    path.position.y = 0.02;
-    scene.add(path);
 
     const player = makePlayer();
     scene.add(player);
@@ -352,27 +442,74 @@ if (typeof THREE === 'undefined') {
     const playerState = { vy: 0, onGround: true };
 
     const doors = [
-        makeDoor(-16, -10, 0xc8102e, 'The Great Mscape', '/'),
-        makeDoor(16, -10, 0x5b3d8f, 'Hershey Super Power', '/food-fight')
+        makeDoor(-8, 8, 0xc8102e, 'The Great Mscape', '/'),
+        makeDoor(8, 8, 0x5b3d8f, 'Hershey Super Power', '/food-fight')
     ];
     doors.forEach((door) => scene.add(door));
 
     const stars = [
-        makeStar(-6, 2),
-        makeStar(6, 3),
-        makeStar(-10, -4),
-        makeStar(11, -6),
-        makeStar(0, -14),
-        makeStar(-4, 12),
-        makeStar(5, 14),
-        makeStar(0, 0)
+        makeStar(0, 8),
+        makeStar(8, 0),
+        makeStar(-8, 0),
+        makeStar(0, -8),
+        makeStar(20, 4),
+        makeStar(-20, 4),
+        makeStar(4, 22),
+        makeStar(-4, -20)
     ];
     stars.forEach((star) => scene.add(star));
 
-    [
-        [-18, 10], [18, 12], [-22, -2], [22, -4],
-        [-8, 18], [9, 19], [-28, -12], [28, -12]
-    ].forEach(([x, z]) => scene.add(makeTree(x, z)));
+    const cityChunks = new Map();
+
+    function chunkKey(cx, cz) {
+        return `${cx},${cz}`;
+    }
+
+    function updateCity() {
+        ground.position.x = player.position.x;
+        ground.position.z = player.position.z;
+        const cx = Math.round(player.position.x / CITY_BLOCK);
+        const cz = Math.round(player.position.z / CITY_BLOCK);
+        const needed = new Set();
+        for (let x = cx - CITY_VIEW; x <= cx + CITY_VIEW; x += 1) {
+            for (let z = cz - CITY_VIEW; z <= cz + CITY_VIEW; z += 1) {
+                const key = chunkKey(x, z);
+                needed.add(key);
+                if (!cityChunks.has(key)) {
+                    const chunk = makeCityChunk(x, z);
+                    scene.add(chunk);
+                    cityChunks.set(key, chunk);
+                }
+            }
+        }
+        cityChunks.forEach((chunk, key) => {
+            if (!needed.has(key)) {
+                scene.remove(chunk);
+                cityChunks.delete(key);
+            }
+        });
+    }
+
+    function bumpOutOfBuildings() {
+        const radius = 0.55;
+        cityChunks.forEach((chunk) => {
+            chunk.userData.buildings.forEach((building) => {
+                const hx = building.w / 2 + radius;
+                const hz = building.d / 2 + radius;
+                const dx = player.position.x - building.x;
+                const dz = player.position.z - building.z;
+                if (Math.abs(dx) < hx && Math.abs(dz) < hz) {
+                    if (hx - Math.abs(dx) < hz - Math.abs(dz)) {
+                        player.position.x = building.x + Math.sign(dx || 1) * hx;
+                    } else {
+                        player.position.z = building.z + Math.sign(dz || 1) * hz;
+                    }
+                }
+            });
+        });
+    }
+
+    updateCity();
 
     function updatePlayer() {
         if (keys.KeyA || keys.ArrowLeft) {
@@ -415,8 +552,8 @@ if (typeof THREE === 'undefined') {
             playerState.onGround = true;
         }
 
-        player.position.x = Math.max(-34, Math.min(34, player.position.x));
-        player.position.z = Math.max(-34, Math.min(34, player.position.z));
+        bumpOutOfBuildings();
+        updateCity();
     }
 
     function updateHint() {
