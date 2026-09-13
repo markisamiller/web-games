@@ -32,6 +32,21 @@ function fitGame() {
     wrap.style.transform = `scale(${scale})`;
 }
 
+function makeHitBox(width, height, depth, color) {
+    const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(width, height, depth),
+        new THREE.MeshBasicMaterial({
+            color,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.95,
+            depthTest: false
+        })
+    );
+    mesh.renderOrder = 20;
+    return mesh;
+}
+
 function makeBox(width, height, depth, color) {
     const mesh = new THREE.Mesh(
         new THREE.BoxGeometry(width, height, depth),
@@ -248,7 +263,9 @@ function makeDoor(x, z, color, name, href) {
         })
     );
     glow.position.set(0, 2, 0.05);
-    group.add(left, right, top, glow);
+    const hit = makeHitBox(5.1, 4.2, 5.1, color);
+    hit.position.y = 2.1;
+    group.add(left, right, top, glow, hit);
     group.position.set(x, 0, z);
     group.userData = { name, href };
     return group;
@@ -262,6 +279,8 @@ function makeStar(x, z) {
     star.position.set(x, 1.2, z);
     star.userData.spin = 0.04 + Math.random() * 0.03;
     star.userData.baseY = 1.2;
+    const hit = makeHitBox(2.28, 2.28, 2.28, 0xffee00);
+    star.add(hit);
     return star;
 }
 
@@ -275,7 +294,9 @@ function makeTree(x, z) {
     );
     leaves.position.y = 2.3;
     leaves.castShadow = true;
-    tree.add(trunk, leaves);
+    const hit = makeHitBox(2.2, 3.4, 2.2, 0x66ff66);
+    hit.position.y = 1.7;
+    tree.add(trunk, leaves, hit);
     tree.position.set(x, 0, z);
     return tree;
 }
@@ -323,6 +344,11 @@ if (typeof THREE === 'undefined') {
 
     const player = makePlayer();
     scene.add(player);
+    const playerHit = makeHitBox(1.3, 2.2, 0.7, 0x00ff88);
+    scene.add(playerHit);
+    const viewHit = makeHitBox(1.3, 0.45, 0.35, 0xff66ff);
+    viewHit.position.set(0, -0.26, -0.5);
+    viewHands.add(viewHit);
     const playerState = { vy: 0, onGround: true };
 
     const doors = [
@@ -496,6 +522,10 @@ if (typeof THREE === 'undefined') {
             grabStars();
             checkDoors(dt);
         }
+        playerHit.position.set(player.position.x, player.position.y + 1.1, player.position.z);
+        playerHit.rotation.y = player.rotation.y;
+        playerHit.visible = true;
+        viewHit.visible = viewMode === 'first';
         updateCamera();
         renderer.render(scene, camera);
         requestAnimationFrame(tick);
