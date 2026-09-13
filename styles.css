@@ -30,6 +30,19 @@ body {
 
 #score-bar {
     justify-content: space-between;
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 40px;
+    gap: 8px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+
+.hub-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .score-bar-right {
@@ -73,6 +86,32 @@ body {
 
 .hud-button:active {
     background-color: #CC0000;
+}
+
+a.hud-button,
+a.menu-button {
+    display: inline-block;
+    text-decoration: none;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.home-button {
+    background-color: #2a6fad;
+}
+
+.math-button {
+    background-color: #2ECC40;
+}
+
+a.hud-button.math-button:active,
+a.menu-button.math-button:active {
+    background-color: #20962e;
+}
+
+a.hud-button.home-button:active,
+a.menu-button.home-button:active {
+    background-color: #1d4f7a;
 }
 
 #yesterday-score-bar {
@@ -1068,8 +1107,29 @@ body {
     outline-offset: 2px;
 }
 
-.maps-menu {
+.maps-menu,
+.games-menu {
     width: min(520px, calc(100% - 24px));
+}
+
+a.map-card {
+    text-decoration: none;
+}
+
+.map-pic-food {
+    background: linear-gradient(#6b2d12, #c45c26);
+}
+
+.map-pic-home {
+    background: linear-gradient(#87CEEB, #4a7c3a);
+}
+
+.map-pic-math {
+    background: linear-gradient(#143d2a, #2ECC40);
+}
+
+.map-pic-marble {
+    background: linear-gradient(#ed1c24, #fff200 50%, #662d91);
 }
 
 .map-list {

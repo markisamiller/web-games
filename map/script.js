@@ -7,6 +7,8 @@ const TURN_SPEED = 0.045;
 const JUMP_POWER = 0.28;
 const GRAVITY = 0.012;
 const STAR_COUNT = 8;
+const GEM_GOAL = 5;
+const GEM_KEY = 'home-world-gems';
 const PUBLIC_SERVER = 'homeworld-public-main';
 const ROOM_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 const MAX_PLAYERS = 8;
@@ -306,6 +308,17 @@ function makeDoor(x, z, color, name, href) {
     return group;
 }
 
+function getGems() {
+    const n = Number(localStorage.getItem(GEM_KEY) || 0);
+    return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
+}
+
+function addGem() {
+    const n = Math.min(GEM_GOAL, getGems() + 1);
+    localStorage.setItem(GEM_KEY, String(n));
+    return n;
+}
+
 function makeStar(x, z) {
     const star = new THREE.Mesh(
         new THREE.OctahedronGeometry(0.38),
@@ -315,6 +328,21 @@ function makeStar(x, z) {
     star.userData.spin = 0.04 + Math.random() * 0.03;
     star.userData.baseY = 1.2;
     return star;
+}
+
+function makeGem(x, z) {
+    const gem = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.44),
+        new THREE.MeshPhongMaterial({
+            color: 0x22d3ee,
+            emissive: 0x0e7490,
+            shininess: 95
+        })
+    );
+    gem.position.set(x, 1.4, z);
+    gem.userData.spin = 0.055 + Math.random() * 0.02;
+    gem.userData.baseY = 1.4;
+    return gem;
 }
 
 const CITY_BLOCK = 28;
@@ -581,7 +609,8 @@ if (typeof THREE === 'undefined') {
 
     const doors = [
         makeDoor(-8, 8, 0xc8102e, 'The Great Mscape', '/'),
-        makeDoor(8, 8, 0x5b3d8f, 'Hershey Super Power', '/food-fight')
+        makeDoor(8, 8, 0x5b3d8f, 'Hershey Super Power', '/food-fight'),
+        makeDoor(0, -10, 0x0e7490, 'Skittle Marble Run', '/home')
     ];
     doors.forEach((door) => scene.add(door));
 
@@ -596,6 +625,25 @@ if (typeof THREE === 'undefined') {
         makeStar(-4, -20)
     ];
     stars.forEach((star) => scene.add(star));
+
+    const gems = [
+        makeGem(6, 6),
+        makeGem(-6, 6),
+        makeGem(14, -6),
+        makeGem(-14, -8),
+        makeGem(0, 16)
+    ];
+    gems.forEach((gem) => {
+        if (getGems() >= GEM_GOAL) {
+            gem.visible = false;
+        }
+        scene.add(gem);
+    });
+
+    function updateLootHud() {
+        scoreEl.textContent = `Stars: ${starsGot} / ${STAR_COUNT} · Gems: ${getGems()} / ${GEM_GOAL}`;
+    }
+    updateLootHud();
 
     const cityChunks = new Map();
 
@@ -877,6 +925,28 @@ if (typeof THREE === 'undefined') {
         camera.lookAt(player.position.x, headY, player.position.z);
     }
 
+    function grabGems() {
+        gems.forEach((gem) => {
+            if (!gem.visible) {
+                return;
+            }
+            gem.rotation.y += gem.userData.spin;
+            gem.position.y = gem.userData.baseY + Math.sin(Date.now() / 240 + gem.position.z) * 0.2;
+            const dx = gem.position.x - player.position.x;
+            const dz = gem.position.z - player.position.z;
+            if (dx * dx + dz * dz < 1.3) {
+                gem.visible = false;
+                addGem();
+                updateLootHud();
+                if (getGems() >= GEM_GOAL) {
+                    hintEl.textContent = 'You got all 5 gems! The Gem Vault ride is unlocked.';
+                } else {
+                    hintEl.textContent = `Gem ${getGems()} of ${GEM_GOAL}. Keep looking!`;
+                }
+            }
+        });
+    }
+
     function grabStars() {
         stars.forEach((star) => {
             if (!star.visible) {
@@ -889,7 +959,7 @@ if (typeof THREE === 'undefined') {
             if (dx * dx + dz * dz < 1.3) {
                 star.visible = false;
                 starsGot += 1;
-                scoreEl.textContent = `Stars: ${starsGot} / ${STAR_COUNT}`;
+                updateLootHud();
                 if (starsGot === STAR_COUNT) {
                     hintEl.textContent = 'You got every star!';
                 }
@@ -1405,6 +1475,7 @@ if (typeof THREE === 'undefined') {
             updateLookPose(wantsWalk() && !playerState.onLadder);
             updatePlayer();
             grabStars();
+            grabGems();
             checkDoors(dt);
             syncNet(now);
         } else {

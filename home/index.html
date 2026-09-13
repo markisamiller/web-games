@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skittle Marble Run</title>
+    <link rel="stylesheet" href="/home/styles.css?v=7">
+</head>
+<body>
+    <div class="game-wrap">
+        <div id="game">
+            <div id="view"></div>
+            <div id="hud">
+                <span id="hud-title">Skittle Marble Run</span>
+                <span id="hud-hint">WASD move · Pick a track</span>
+            </div>
+            <button id="rides-btn" type="button">Rides</button>
+            <a id="back-btn" href="/">Back to MScape</a>
+            <div id="start-screen" class="panel pick-panel">
+                <h1>Skittle Marble Run</h1>
+                <p>All 12 rides. Gem Vault needs 5 gems from Home World.</p>
+                <div id="track-picks" class="track-picks"></div>
+                <button id="keep-btn" type="button" hidden>Keep playing</button>
+            </div>
+            <div id="win-screen" class="panel" hidden>
+                <h1>You made it!</h1>
+                <p>Your Skittle finished the marble run.</p>
+                <button id="again-btn" type="button">Play again</button>
+                <button id="pick-btn" type="button">Pick another track</button>
+                <button id="floor-btn" type="button">Floor</button>
+                <p><a class="panel-link" href="/">Back to MScape</a></p>
+            </div>
+        </div>
+    </div>
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+    <script src="/home/script.js?v=18"></script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+body {
+    margin: 0;
+    min-height: 100vh;
+    overflow-y: auto;
+    background: #0f2418;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+.page {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 16px 16px 40px;
+    box-sizing: border-box;
+}
+
+.top-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.nav-btn,
+.go-btn {
+    border: none;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+    text-decoration: none;
+    text-align: center;
+}
+
+.nav-btn {
+    display: inline-block;
+    padding: 10px 14px;
+    background: #FF0000;
+    font-size: 16px;
+}
+
+.nav-btn.home {
+    background: #2a6fad;
+}
+
+.nav-btn.math {
+    background: #2ECC40;
+}
+
+.go-btn {
+    margin-top: 12px;
+    padding: 14px 28px;
+    background: #2ECC40;
+    font-size: 22px;
+}
+
+.panel {
+    background: rgba(20, 20, 20, 0.92);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+}
+
+h1 {
+    color: #FFD100;
+    margin: 0 0 10px;
+}
+
+.best {
+    color: #FFD100;
+    font-weight: bold;
+}
+
+.hud {
+    display: flex;
+    justify-content: space-between;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+#hearts {
+    color: #ff4d4d;
+}
+
+#timer-wrap {
+    height: 14px;
+    margin: 14px 0 8px;
+    background: #333;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#timer-bar {
+    height: 100%;
+    width: 100%;
+    background: #FFD100;
+}
+
+#question {
+    font-size: 42px;
+    font-weight: bold;
+    margin: 20px 0;
+}
+
+#answers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+#answers button {
+    padding: 16px;
+    font-size: 24px;
+    font-weight: bold;
+    border: none;
+    border-radius: 10px;
+    background: #2a6fad;
+    color: white;
+    cursor: pointer;
+}
+
+#answers button:disabled {
+    cursor: default;
+}
+
+#answers button.right {
+    background: #2ECC40;
+}
+
+#answers button.wrong {
+    background: #CC0000;
+}
+
+#play-note {
+    min-height: 24px;
+    font-size: 20px;
+}

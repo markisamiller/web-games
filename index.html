@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Great MScape</title>
-    <link rel="stylesheet" href="styles.css?v=108">
+    <link rel="stylesheet" href="styles.css?v=112">
 </head>
 <body>
     <div class="game-wrapper">
@@ -46,6 +46,9 @@
                 <p class="by-line">by Liam</p>
                 <button id="start-game-btn" class="menu-button">Start Game</button>
                 <button id="instructions-btn" class="menu-button">Instructions</button>
+                <a class="menu-button home-button" href="/home">Home</a>
+                <button id="mini-games-btn" class="menu-button">Mini Games</button>
+                <a class="menu-button math-button" href="/math">Math Games</a>
             </div>
 
             <!-- Instructions Screen -->
@@ -75,6 +78,7 @@
                 <p>Your Score: <span id="final-score">0</span></p>
                 <button id="restart-button" class="menu-button">Play Again</button>
                 <button id="menu-button" class="menu-button">Main Menu</button>
+                <a class="menu-button home-button" href="/home">Home</a>
             </div>
 
             <!-- Pause Screen -->
@@ -83,6 +87,7 @@
                 <p>Press P or click Resume to play</p>
                 <button id="resume-button" class="menu-button">Resume</button>
                 <button id="pause-restart-button" class="menu-button">Restart</button>
+                <a class="menu-button home-button" href="/home">Home</a>
             </div>
 
             <!-- Settings Screen -->
@@ -94,6 +99,7 @@
                 <button id="customize-btn" class="menu-button">Customize</button>
                 <button id="maps-btn" class="menu-button">Maps</button>
                 <button id="reset-progress-btn" class="menu-button">Reset Progress</button>
+                <a class="menu-button home-button" href="/home">Home</a>
                 <button id="close-settings-btn" class="menu-button">Close</button>
             </div>
 
@@ -137,6 +143,40 @@
                 <button id="back-maps-btn" class="menu-button">Back</button>
             </div>
 
+            <!-- Mini Games Screen -->
+            <div id="mini-games-screen" class="menu-screen games-menu" style="display: none;">
+                <h2>Mini Games</h2>
+                <p>Pick a fun game</p>
+                <div class="map-list">
+                    <a class="map-card" href="/">
+                        <span class="map-pic map-pic-1"></span>
+                        <span class="map-title">The Great MScape</span>
+                        <span class="map-look">Run, jump, and escape the Skittles</span>
+                    </a>
+                    <a class="map-card" href="/food-fight">
+                        <span class="map-pic map-pic-food"></span>
+                        <span class="map-title">Hershey Super Power</span>
+                        <span class="map-look">Snack fights with Coke, Pepsi, Hershey, and Mars</span>
+                    </a>
+                    <a class="map-card" href="/home">
+                        <span class="map-pic map-pic-marble"></span>
+                        <span class="map-title">Skittle Marble Run</span>
+                        <span class="map-look">Roll on twisty tracks and the grass</span>
+                    </a>
+                    <a class="map-card" href="/map">
+                        <span class="map-pic map-pic-home"></span>
+                        <span class="map-title">Home World</span>
+                        <span class="map-look">A city you can walk, fly, and explore</span>
+                    </a>
+                    <a class="map-card" href="/math">
+                        <span class="map-pic map-pic-math"></span>
+                        <span class="map-title">Math Games</span>
+                        <span class="map-look">Math Rush: beat the clock, no picking questions</span>
+                    </a>
+                </div>
+                <button id="back-mini-btn" class="menu-button">Back</button>
+            </div>
+
             <!-- You Win Screen -->
             <div id="you-win-screen" class="menu-screen" style="display: none;">
                 <h2>You Win!</h2>
@@ -144,6 +184,7 @@
                 <p>Your Score: <span id="win-score">0</span></p>
                 <button id="win-restart-button" class="menu-button">Play Again</button>
                 <button id="win-menu-button" class="menu-button">Main Menu</button>
+                <a class="menu-button home-button" href="/home">Home</a>
             </div>
         </div>
         <div id="hearts-bar">
@@ -155,6 +196,6 @@
             <span id="yesterday-score-display" style="font-weight: bold;">Yesterday's Top Score: 0</span>
         </div>
     </div>
-    <script src="script.js?v=148"></script>
+    <script src="script.js?v=152"></script>
 </body>
 </html>

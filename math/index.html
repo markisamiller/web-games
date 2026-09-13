@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Rush</title>
+    <link rel="stylesheet" href="/math/styles.css?v=2">
+</head>
+<body>
+    <div class="page">
+        <div class="top-bar">
+            <a class="nav-btn home" href="/home">Home</a>
+            <a class="nav-btn" href="/?go=mini">Mini Games</a>
+            <a class="nav-btn math" href="/math">Math Games</a>
+        </div>
+
+        <div id="start" class="panel">
+            <h1>Math Rush</h1>
+            <p>A real game. The questions pick themselves.</p>
+            <p>You get plus, minus, and times. You do not choose.</p>
+            <p>Tap the right answer before the bar runs out.</p>
+            <p>3 hearts. Miss or go too slow, you lose a heart.</p>
+            <p class="best" id="start-best">Best: 0</p>
+            <button id="play-btn" class="go-btn" type="button">Play</button>
+        </div>
+
+        <div id="play" class="panel" hidden>
+            <div class="hud">
+                <span id="hearts">♥ ♥ ♥</span>
+                <span id="play-score">Score: 0</span>
+            </div>
+            <div id="timer-wrap"><div id="timer-bar"></div></div>
+            <p id="question">1 + 1 = ?</p>
+            <div id="answers"></div>
+            <p id="play-note"></p>
+        </div>
+
+        <div id="over" class="panel" hidden>
+            <h1>Game Over</h1>
+            <p id="over-score">Score: 0</p>
+            <p id="over-best">Best: 0</p>
+            <button id="again-btn" class="go-btn" type="button">Play again</button>
+        </div>
+    </div>
+    <script src="/math/script.js?v=2"></script>
+</body>
+</html>

@@ -10,6 +10,10 @@ window.addEventListener('load', () => {
         localStorage.setItem(UNLOCKED_LEVEL_KEY, '1');
     }
     loadUnlockedLevels();
+    if (new URLSearchParams(window.location.search).get('go') === 'mini') {
+        hideAllScreens();
+        showScreen('mini-games-screen');
+    }
     updateInstructions();
     fetchHighScores();
 });
@@ -126,24 +130,32 @@ const DESKTOP_SETTINGS = {
 };
 
 const smashSound = new Audio('sounds/smash.mp3');
-const eatSound = new Audio('sounds/eat.mp3');
 smashSound.preload = 'auto';
-eatSound.preload = 'auto';
+let gameAudio = null;
+
+function getGameAudio() {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return null;
+    if (!gameAudio) gameAudio = new AudioCtx();
+    if (gameAudio.state === 'suspended') {
+        gameAudio.resume().catch(() => {});
+    }
+    return gameAudio;
+}
 
 function unlockGameSounds() {
-    [smashSound, eatSound].forEach((sound) => {
-        sound.muted = true;
-        const playPromise = sound.play();
-        if (playPromise) {
-            playPromise.then(() => {
-                sound.pause();
-                sound.currentTime = 0;
-                sound.muted = false;
-            }).catch(() => {
-                sound.muted = false;
-            });
-        }
-    });
+    getGameAudio();
+    smashSound.muted = true;
+    const playPromise = smashSound.play();
+    if (playPromise) {
+        playPromise.then(() => {
+            smashSound.pause();
+            smashSound.currentTime = 0;
+            smashSound.muted = false;
+        }).catch(() => {
+            smashSound.muted = false;
+        });
+    }
 }
 
 function playSoundNow(sound) {
@@ -161,8 +173,48 @@ function playSmashSound() {
     playSoundNow(smashSound);
 }
 
+let lastEatSoundAt = 0;
+
+function playCrunch(ctx, when, pitch) {
+    const duration = 0.1;
+    const count = Math.floor(ctx.sampleRate * duration);
+    const buffer = ctx.createBuffer(1, count, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < count; i++) {
+        const t = i / count;
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 2.4);
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1300 * pitch;
+    filter.Q.value = 1.1;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, when);
+    gain.gain.exponentialRampToValueAtTime(0.5, when + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + duration);
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    src.start(when);
+    src.stop(when + duration);
+}
+
+function playMinecraftStyleEat() {
+    const ctx = getGameAudio();
+    if (!ctx) return;
+    const start = ctx.currentTime;
+    for (let i = 0; i < 4; i++) {
+        playCrunch(ctx, start + i * 0.12, 0.88 + i * 0.05);
+    }
+}
+
 function playEatSound() {
-    playSoundNow(eatSound);
+    const now = Date.now();
+    if (now - lastEatSoundAt < 500) return;
+    lastEatSoundAt = now;
+    playMinecraftStyleEat();
 }
 
 function playSkittleHitSound(el) {
@@ -349,6 +401,14 @@ document.getElementById('maps-btn').addEventListener('click', () => {
     openMaps();
 });
 
+document.getElementById('mini-games-btn').addEventListener('click', () => {
+    openMiniGames();
+});
+
+document.getElementById('back-mini-btn').addEventListener('click', () => {
+    backFromMiniGames();
+});
+
 document.getElementById('reset-progress-btn').addEventListener('click', () => {
     resetPlayProgress();
 });
@@ -422,7 +482,7 @@ buttons.forEach(button => {
 });
 
 function hideAllScreens() {
-    const screens = ['main-menu', 'instructions-screen', 'game-over-screen', 'you-win-screen', 'pause-screen', 'settings-screen', 'customize-screen', 'maps-screen'];
+    const screens = ['main-menu', 'instructions-screen', 'game-over-screen', 'you-win-screen', 'pause-screen', 'settings-screen', 'customize-screen', 'maps-screen', 'mini-games-screen'];
     screens.forEach(screenId => {
         document.getElementById(screenId).style.display = 'none';
     });
@@ -607,6 +667,29 @@ function closeMaps() {
     hideAllScreens();
     updateSettingsButtons();
     showScreen('settings-screen');
+}
+
+function openMiniGames() {
+    if (gameActive && !isPaused) {
+        settingsPausedGame = true;
+        isPaused = true;
+        stopMotion();
+        heldKeys.clear();
+        flyTouchHeld = false;
+        mAndM.classList.remove('flying');
+    }
+    hideAllScreens();
+    showScreen('mini-games-screen');
+}
+
+function backFromMiniGames() {
+    hideAllScreens();
+    if (settingsPausedGame && gameActive) {
+        settingsPausedGame = false;
+        resumeGame();
+        return;
+    }
+    showScreen('main-menu');
 }
 
 function closeSettings() {
@@ -1170,13 +1253,6 @@ function moveBackgroundAndObstacles() {
 
     obstacles.forEach(obstacle => {
         if (obstacle.classList.contains('being-eaten-by-giant')) return;
-        if (checkCircleCollision(mAndM, obstacle)) {
-            consecutiveJumps = 0;
-            playSkittleHitSound(obstacle);
-            gameOver(obstacle);
-            return;
-        }
-
         if (!obstacle.dataset.scored && Number(obstacle.dataset.worldX) + 40 < playerWorldX) {
             obstacle.dataset.scored = 'true';
             consecutiveJumps++;
@@ -1195,6 +1271,17 @@ function moveBackgroundAndObstacles() {
             updateScore();
         }
     });
+
+    if (gameActive && Date.now() >= hurtUntil) {
+        for (const obstacle of obstacles) {
+            if (obstacle.classList.contains('being-eaten-by-giant')) continue;
+            if (!checkCircleCollision(mAndM, obstacle)) continue;
+            consecutiveJumps = 0;
+            playSkittleHitSound(obstacle);
+            gameOver(obstacle);
+            break;
+        }
+    }
 
     const giant = document.getElementById('giant-skittle');
     if (gameActive && !smashPlaying && playerIsBehindGiant()) {

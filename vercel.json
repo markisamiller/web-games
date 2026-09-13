@@ -18,6 +18,18 @@
     {
       "source": "/map",
       "destination": "/map/index.html"
+    },
+    {
+      "source": "/math",
+      "destination": "/math/index.html"
+    },
+    {
+      "source": "/home",
+      "destination": "/home/index.html"
+    },
+    {
+      "source": "/games",
+      "destination": "/games/index.html"
     }
   ],
   "redirects": [
