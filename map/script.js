@@ -345,6 +345,8 @@ function addCityBuilding(chunk, originX, originZ, lx, lz, width, height, depth, 
     wall.position.y = height / 2;
     building.add(wall);
     addWindows(building, width, height, depth, Math.abs(Math.round(originX + lx * 17 + lz * 31)));
+    const openSeed = Math.abs(Math.round(originX * 13 + originZ * 17 + lx * 9 + lz * 5));
+    addBuildingDoor(building, width, depth, faceX, faceZ, openSeed % 3 === 0);
     building.position.set(lx, 0, lz);
     chunk.add(building);
     chunk.userData.buildings.push({
@@ -375,6 +377,44 @@ function addCityBuilding(chunk, originX, originZ, lx, lz, width, height, depth, 
         inX: -faceX,
         inZ: -faceZ
     });
+}
+
+function addBuildingDoor(building, width, depth, faceX, faceZ, isOpen) {
+    const doorW = 1.1;
+    const doorH = 2.1;
+    const group = new THREE.Group();
+    group.position.set(faceX * (width / 2), 0, faceZ * (depth / 2));
+    group.rotation.y = Math.atan2(faceX, faceZ);
+
+    const hole = makeBox(doorW * 0.92, doorH * 0.96, 0.14, 0x120e0c);
+    hole.position.set(0, doorH / 2, 0.02);
+    group.add(hole);
+
+    if (isOpen) {
+        const glow = new THREE.Mesh(
+            new THREE.PlaneGeometry(doorW * 0.8, doorH * 0.88),
+            new THREE.MeshBasicMaterial({ color: 0xffc85a })
+        );
+        glow.position.set(0, doorH / 2, -0.02);
+        group.add(glow);
+
+        const hinge = new THREE.Group();
+        hinge.position.set(-doorW / 2, 0, 0.08);
+        hinge.rotation.y = -1.25;
+        const panel = makeBox(doorW, doorH, 0.08, 0x6b3d1f);
+        panel.position.set(doorW / 2, doorH / 2, 0);
+        const knob = makeBox(0.08, 0.08, 0.08, 0xd4a017);
+        knob.position.set(doorW - 0.18, doorH / 2, 0.08);
+        hinge.add(panel, knob);
+        group.add(hinge);
+    } else {
+        const panel = makeBox(doorW, doorH, 0.08, 0x6b3d1f);
+        panel.position.set(0, doorH / 2, 0.06);
+        const knob = makeBox(0.08, 0.08, 0.08, 0xd4a017);
+        knob.position.set(doorW * 0.32, doorH / 2, 0.12);
+        group.add(panel, knob);
+    }
+    building.add(group);
 }
 
 function addWindows(building, width, height, depth, seed) {
