@@ -55,8 +55,8 @@ function makeRoundMesh(geometry, color) {
 function skinMaterial(color) {
     return new THREE.MeshPhongMaterial({
         color,
-        shininess: 90,
-        specular: 0x777777,
+        shininess: 28,
+        specular: 0x333333,
         flatShading: false
     });
 }
@@ -114,58 +114,62 @@ function makePlayer() {
     const gold = 0xd89a2a;
     const lens = 0x2b1a3d;
 
-    const torso = makeSoftBox(1.02, 1.02, 0.46, black, 0.06);
-    torso.position.y = 1.42;
-    const zipper = makeSoftBox(0.03, 0.86, 0.03, 0x3a3a3a, 0.01);
-    zipper.position.set(0, 1.42, -0.25);
-    const zipPull = makeSoftBox(0.08, 0.06, 0.06, 0x4a4a4a, 0.01);
-    zipPull.position.set(0, 1.82, -0.27);
+    const torso = makeSoftBox(0.96, 1.0, 0.42, black, 0.04);
+    torso.position.y = 1.4;
+    const zipper = makeSoftBox(0.03, 0.84, 0.03, 0x3a3a3a, 0.01);
+    zipper.position.set(0, 1.4, -0.23);
+    const zipPull = makeSoftBox(0.07, 0.05, 0.05, 0x4a4a4a, 0.01);
+    zipPull.position.set(0, 1.78, -0.25);
 
     const head = new THREE.Group();
-    const skull = new THREE.Mesh(new THREE.SphereGeometry(0.5, 36, 36), skinMaterial(skin));
+    const skull = new THREE.Mesh(new THREE.SphereGeometry(0.46, 36, 36), skinMaterial(skin));
+    skull.scale.set(1, 0.94, 0.96);
     skull.castShadow = true;
 
     const hairMat = skinMaterial(hair);
-    const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.5, 24, 18), hairMat);
-    hairCap.scale.set(1.12, 0.78, 1.14);
-    hairCap.position.set(-0.05, 0.2, 0.04);
-    const hairFront = new THREE.Mesh(new THREE.SphereGeometry(0.2, 14, 12), hairMat);
-    hairFront.scale.set(1.7, 0.55, 0.7);
-    hairFront.position.set(-0.06, 0.34, -0.28);
-    const flick = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 12), hairMat);
-    flick.scale.set(1.45, 0.62, 0.85);
-    flick.rotation.set(0.05, -0.4, 0.85);
-    flick.position.set(-0.3, 0.34, -0.04);
-    const spike = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), hairMat);
-    spike.scale.set(1.25, 0.4, 0.55);
-    spike.rotation.set(0.08, 0.25, -1.05);
-    spike.position.set(0.22, 0.36, -0.06);
-    const hairSide = new THREE.Mesh(new THREE.SphereGeometry(0.22, 14, 12), hairMat);
-    hairSide.scale.set(0.8, 0.7, 1);
-    hairSide.position.set(-0.4, 0.16, 0.02);
+    const hairCap = new THREE.Mesh(
+        new THREE.SphereGeometry(0.5, 24, 18, 0, Math.PI * 2, 0, Math.PI * 0.46),
+        hairMat
+    );
+    hairCap.scale.set(1.1, 0.92, 1.12);
+    hairCap.position.set(0, 0.1, 0.05);
+    const hairFront = new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 12), hairMat);
+    hairFront.scale.set(1.9, 0.42, 0.6);
+    hairFront.position.set(-0.04, 0.3, -0.28);
+    const flick = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 12), hairMat);
+    flick.scale.set(1.3, 0.5, 0.75);
+    flick.rotation.set(0.05, -0.35, 0.75);
+    flick.position.set(-0.26, 0.32, -0.02);
+    const spike = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 10), hairMat);
+    spike.scale.set(1.1, 0.36, 0.48);
+    spike.rotation.set(0.06, 0.2, -0.9);
+    spike.position.set(0.18, 0.34, -0.02);
+    const hairSide = new THREE.Mesh(new THREE.SphereGeometry(0.18, 14, 12), hairMat);
+    hairSide.scale.set(0.7, 0.65, 0.95);
+    hairSide.position.set(-0.34, 0.12, 0.04);
     const hairSideR = hairSide.clone();
-    hairSideR.position.set(0.36, 0.14, 0.02);
-    const hairBack = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 12), hairMat);
-    hairBack.scale.set(1.35, 0.75, 0.85);
-    hairBack.position.set(-0.04, 0.14, 0.26);
+    hairSideR.position.set(0.32, 0.12, 0.04);
+    const hairBack = new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 12), hairMat);
+    hairBack.scale.set(1.4, 1.05, 1);
+    hairBack.position.set(0, 0.04, 0.22);
 
     const glasses = new THREE.Group();
-    const lensGeo = new THREE.SphereGeometry(0.16, 16, 12);
+    const lensGeo = new THREE.SphereGeometry(0.15, 16, 12);
     const lensL = new THREE.Mesh(lensGeo, skinMaterial(lens));
-    lensL.scale.set(1.25, 0.58, 0.24);
-    lensL.position.set(-0.19, 0.07, -0.47);
+    lensL.scale.set(1.2, 0.56, 0.22);
+    lensL.position.set(-0.17, 0.06, -0.43);
     const lensR = lensL.clone();
-    lensR.position.x = 0.18;
-    const bridge = makeSoftBox(0.1, 0.03, 0.035, gold, 0.01);
-    bridge.position.set(0, 0.06, -0.47);
-    const rimL = makeSoftBox(0.3, 0.03, 0.035, gold, 0.01);
-    rimL.position.set(-0.18, 0.14, -0.47);
+    lensR.position.x = 0.17;
+    const bridge = makeSoftBox(0.09, 0.025, 0.03, gold, 0.01);
+    bridge.position.set(0, 0.06, -0.44);
+    const rimL = makeSoftBox(0.28, 0.025, 0.03, gold, 0.01);
+    rimL.position.set(-0.17, 0.13, -0.44);
     const rimR = rimL.clone();
-    rimR.position.x = 0.18;
-    const armL = makeSoftBox(0.035, 0.025, 0.2, gold, 0.01);
-    armL.position.set(-0.34, 0.06, -0.36);
+    rimR.position.x = 0.17;
+    const armL = makeSoftBox(0.03, 0.022, 0.18, gold, 0.01);
+    armL.position.set(-0.31, 0.06, -0.34);
     const armR = armL.clone();
-    armR.position.x = 0.34;
+    armR.position.x = 0.31;
     glasses.add(lensL, lensR, bridge, rimL, rimR, armL, armR);
 
     const smile = new THREE.Mesh(
@@ -173,20 +177,20 @@ function makePlayer() {
         skinMaterial(0x333333)
     );
     smile.rotation.set(Math.PI, 0, 0);
-    smile.position.set(0, -0.18, -0.45);
+    smile.position.set(0, -0.16, -0.42);
 
     head.add(skull, hairCap, hairFront, flick, spike, hairSide, hairSideR, hairBack, glasses, smile);
-    head.position.y = 2.2;
+    head.position.y = 2.14;
 
-    const leftArm = makeBlockLimb(0.3, 0.92, 0.3, black, skin, 0.24, 0.3);
-    leftArm.position.set(-0.68, 1.88, 0);
-    const rightArm = makeBlockLimb(0.3, 0.92, 0.3, black, skin, 0.24, 0.3);
-    rightArm.position.set(0.68, 1.88, 0);
+    const leftArm = makeBlockLimb(0.26, 0.9, 0.26, black, skin, 0.22, 0.26);
+    leftArm.position.set(-0.63, 1.84, 0);
+    const rightArm = makeBlockLimb(0.26, 0.9, 0.26, black, skin, 0.22, 0.26);
+    rightArm.position.set(0.63, 1.84, 0);
 
-    const leftLeg = makeBlockLimb(0.34, 0.74, 0.34, black, skin, 0.22, 0.58);
-    leftLeg.position.set(-0.22, 0.9, 0);
-    const rightLeg = makeBlockLimb(0.34, 0.74, 0.34, black, skin, 0.22, 0.58);
-    rightLeg.position.set(0.22, 0.9, 0);
+    const leftLeg = makeBlockLimb(0.3, 0.72, 0.3, black, skin, 0.2, 0.52);
+    leftLeg.position.set(-0.2, 0.88, 0);
+    const rightLeg = makeBlockLimb(0.3, 0.72, 0.3, black, skin, 0.2, 0.52);
+    rightLeg.position.set(0.2, 0.88, 0);
 
     body.add(torso, zipper, zipPull, head, leftArm, rightArm, leftLeg, rightLeg);
     body.position.set(0, 0, 16);
@@ -369,7 +373,7 @@ if (typeof THREE === 'undefined') {
         player.visible = true;
         player.userData.head.visible = viewMode !== 'first';
         if (viewMode === 'first') {
-            const eyeY = player.position.y + 2.2;
+            const eyeY = player.position.y + 2.14;
             const lookX = Math.sin(rot) * Math.cos(lookPitch);
             const lookY = Math.sin(lookPitch);
             const lookZ = -Math.cos(rot) * Math.cos(lookPitch);
