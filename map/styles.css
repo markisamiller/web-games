@@ -62,7 +62,17 @@ body {
     color: #c8d4de;
 }
 
-#player-name,
+#account-screen {
+    z-index: 6;
+}
+
+#account-who {
+    margin: 8px 0 0;
+    color: #9ee6ff;
+}
+
+#account-nick,
+#account-pass,
 #join-code {
     margin-top: 8px;
     padding: 10px 12px;
@@ -75,9 +85,20 @@ body {
     text-align: center;
 }
 
-#player-name {
+#account-nick {
     width: 220px;
     letter-spacing: 0.04em;
+}
+
+#account-pass {
+    width: 160px;
+    letter-spacing: 0.2em;
+}
+
+#account-error {
+    min-height: 24px;
+    color: #ffd100;
+    font-size: 18px;
 }
 
 #join-code {

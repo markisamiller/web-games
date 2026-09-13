@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hershey Super Power</title>
-    <link rel="stylesheet" href="/food-fight/styles.css?v=hp151">
+    <link rel="stylesheet" href="/food-fight/styles.css?v=hp152">
 </head>
 <body>
     <div class="game-wrapper">
@@ -22,13 +22,26 @@
             <div id="controls-hint" hidden></div>
             <button id="heal-btn" class="heal-button" hidden>Heal</button>
 
-            <div id="main-menu" class="menu-screen">
+            <div id="account-screen" class="menu-screen">
+                <h1>Your Account</h1>
+                <p>Sign up to play. Pick a nickname and a secret 4-letter passcode.</p>
+                <p>Coming back? Type the same nickname and passcode, then Sign In.</p>
+                <input id="account-nick" type="text" maxlength="12" placeholder="Nickname" autocomplete="off" spellcheck="false">
+                <input id="account-pass" type="password" maxlength="4" placeholder="Passcode" autocomplete="off" spellcheck="false">
+                <button id="account-signup-btn" class="menu-button">Sign Up</button>
+                <button id="account-signin-btn" class="menu-button">Sign In</button>
+                <p id="account-error" class="online-error"></p>
+            </div>
+
+            <div id="main-menu" class="menu-screen" hidden>
                 <h1>Hershey Super Power</h1>
                 <p class="tagline">Snacks. Soda. Showdown.</p>
+                <p id="account-who" class="pick-label">Not signed in</p>
                 <p class="pick-label">Pick a match</p>
                 <div id="match-list"></div>
                 <button id="online-btn" class="menu-button online-button">Play Online</button>
                 <button id="how-btn" class="menu-button">How to Play</button>
+                <button id="sign-out-btn" class="menu-button">Sign Out</button>
                 <a id="home-btn" class="menu-button home-button" href="/map">Home</a>
             </div>
 
@@ -86,7 +99,8 @@
             </div>
         </div>
     </div>
+    <script src="/account.js?v=city26"></script>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-    <script src="/food-fight/script.js?v=hp151"></script>
+    <script src="/food-fight/script.js?v=hp152"></script>
 </body>
 </html>

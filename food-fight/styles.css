@@ -598,6 +598,8 @@ a.menu-button {
     box-shadow: 0 4px 0 #3b2560;
 }
 
+#account-nick,
+#account-pass,
 #join-code {
     width: 180px;
     margin: 0 0 12px;
@@ -611,6 +613,19 @@ a.menu-button {
     letter-spacing: 8px;
     text-align: center;
     text-transform: uppercase;
+}
+
+#account-nick {
+    width: 240px;
+    letter-spacing: 0.04em;
+    text-transform: none;
+    font-size: 22px;
+}
+
+#account-pass {
+    width: 180px;
+    letter-spacing: 0.2em;
+    font-size: 22px;
 }
 
 #join-code::placeholder {

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home World</title>
-    <link rel="stylesheet" href="/map/styles.css?v=city25">
+    <link rel="stylesheet" href="/map/styles.css?v=city26">
 </head>
 <body>
     <div class="game-wrap">
@@ -16,7 +16,7 @@
                 <span id="hint">Press Shift to sprint. Press again to stop.</span>
             </div>
             <div id="door-label" hidden></div>
-            <div id="start-screen" class="panel">
+            <div id="start-screen" class="panel" hidden>
                 <h1>Home World</h1>
                 <p>A city that never ends. Walk, jump, and grab stars.</p>
                 <p>A walks left. D walks right. W walks forward. S walks back.</p>
@@ -26,8 +26,8 @@
                 <p>Hold the right mouse button and move to look around. The head turns first. Then the body follows that way.</p>
                 <p>Some buildings have brown ladders. Walk into one and press Space or W to climb onto the roof.</p>
                 <p>Walk into a glowing door to play another game.</p>
-                <p>No computer players. Only real people who type a name and press Play.</p>
-                <input id="player-name" type="text" maxlength="12" placeholder="Your name" autocomplete="off" spellcheck="false">
+                <p>No computer players. Sign up, then press Play.</p>
+                <p id="account-who">Not signed in</p>
                 <button id="play-btn" type="button">Play</button>
                 <p class="or-line">or make a private room</p>
                 <button id="host-room-btn" type="button">Make Room</button>
@@ -35,11 +35,23 @@
                 <input id="join-code" type="text" maxlength="4" placeholder="CODE" autocomplete="off" spellcheck="false">
                 <button id="join-room-btn" type="button">Join Room</button>
                 <p id="online-error"></p>
+                <button id="sign-out-btn" type="button">Sign Out</button>
+            </div>
+            <div id="account-screen" class="panel">
+                <h1>Your Account</h1>
+                <p>Sign up to play. Pick a nickname and a secret 4-letter passcode.</p>
+                <p>Coming back? Type the same nickname and passcode, then Sign In.</p>
+                <input id="account-nick" type="text" maxlength="12" placeholder="Nickname" autocomplete="off" spellcheck="false">
+                <input id="account-pass" type="password" maxlength="4" placeholder="Passcode" autocomplete="off" spellcheck="false">
+                <button id="account-signup-btn" type="button">Sign Up</button>
+                <button id="account-signin-btn" type="button">Sign In</button>
+                <p id="account-error"></p>
             </div>
         </div>
     </div>
+    <script src="/account.js?v=city26"></script>
     <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-    <script src="/map/script.js?v=city25"></script>
+    <script src="/map/script.js?v=city26"></script>
 </body>
 </html>

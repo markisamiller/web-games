@@ -1370,6 +1370,9 @@ function handleGuestData(data) {
 }
 
 function createRoom() {
+    if (!requireAccount()) {
+        return;
+    }
     if (typeof Peer === 'undefined') {
         setOnlineError('Could not load online play. Check the internet.');
         return;
@@ -1400,6 +1403,9 @@ function createRoom() {
 }
 
 function joinRoom() {
+    if (!requireAccount()) {
+        return;
+    }
     if (typeof Peer === 'undefined') {
         setOnlineError('Could not load online play. Check the internet.');
         return;
@@ -1468,7 +1474,7 @@ function goToMenu() {
     sparkEl.classList.remove('show');
     clearHearts();
     clearHealBits();
-    showScreen('main-menu');
+    showPlayMenu();
 }
 
 function buildMatchButtons() {
@@ -1478,7 +1484,12 @@ function buildMatchButtons() {
         const button = document.createElement('button');
         button.className = 'match-button';
         button.innerHTML = `${match.title}<small>${match.subtitle}</small>`;
-        button.addEventListener('click', () => startMatch(match));
+        button.addEventListener('click', () => {
+            if (!requireAccount()) {
+                return;
+            }
+            startMatch(match);
+        });
         list.appendChild(button);
     });
 }
@@ -1519,9 +1530,68 @@ window.addEventListener('keyup', (event) => {
 });
 
 document.getElementById('heal-btn').addEventListener('click', useHeal);
+function setAccountError(text) {
+    document.getElementById('account-error').textContent = text;
+}
+
+function showPlayMenu() {
+    const session = window.GameAccount && window.GameAccount.current();
+    if (!session) {
+        showScreen('account-screen');
+        return;
+    }
+    document.getElementById('account-who').textContent = `Signed in as ${session.name}`;
+    showScreen('main-menu');
+}
+
+function requireAccount() {
+    const session = window.GameAccount && window.GameAccount.current();
+    if (session) {
+        return true;
+    }
+    setAccountError('Sign up or sign in first.');
+    showScreen('account-screen');
+    return false;
+}
+
+function finishAccount(result) {
+    if (!result.ok) {
+        setAccountError(result.error);
+        return;
+    }
+    setAccountError('');
+    showPlayMenu();
+}
+
+document.getElementById('account-signup-btn').addEventListener('click', () => {
+    finishAccount(window.GameAccount.signUp(
+        document.getElementById('account-nick').value,
+        document.getElementById('account-pass').value
+    ));
+});
+document.getElementById('account-signin-btn').addEventListener('click', () => {
+    finishAccount(window.GameAccount.signIn(
+        document.getElementById('account-nick').value,
+        document.getElementById('account-pass').value
+    ));
+});
+document.getElementById('sign-out-btn').addEventListener('click', () => {
+    window.GameAccount.signOut();
+    document.getElementById('account-pass').value = '';
+    setAccountError('');
+    showScreen('account-screen');
+});
+document.getElementById('account-pass').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+        document.getElementById('account-signin-btn').click();
+    }
+});
 document.getElementById('how-btn').addEventListener('click', () => showScreen('how-screen'));
-document.getElementById('how-back-btn').addEventListener('click', () => showScreen('main-menu'));
+document.getElementById('how-back-btn').addEventListener('click', showPlayMenu);
 document.getElementById('online-btn').addEventListener('click', () => {
+    if (!requireAccount()) {
+        return;
+    }
     setOnlineError('');
     showScreen('online-screen');
 });
@@ -1557,5 +1627,5 @@ document.getElementById('win-menu-btn').addEventListener('click', goToMenu);
 window.addEventListener('resize', fitGame);
 buildMatchButtons();
 fitGame();
-showScreen('main-menu');
+showPlayMenu();
 tick();

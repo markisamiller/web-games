@@ -22,7 +22,11 @@ const playBtn = document.getElementById('play-btn');
 const hostRoomBtn = document.getElementById('host-room-btn');
 const joinRoomBtn = document.getElementById('join-room-btn');
 const joinCodeInput = document.getElementById('join-code');
-const nameInput = document.getElementById('player-name');
+const accountScreen = document.getElementById('account-screen');
+const accountNick = document.getElementById('account-nick');
+const accountPass = document.getElementById('account-pass');
+const accountError = document.getElementById('account-error');
+const accountWho = document.getElementById('account-who');
 const viewEl = document.getElementById('view');
 let myName = '';
 
@@ -1263,16 +1267,44 @@ if (typeof THREE === 'undefined') {
         player.userData.name = name;
     }
 
+    function setAccountError(text) {
+        accountError.textContent = text;
+    }
+
+    function showSignedIn(name) {
+        myName = name;
+        accountWho.textContent = `Signed in as ${name}`;
+        accountScreen.hidden = true;
+        startScreen.hidden = false;
+        setLocalPerson(name);
+    }
+
+    function showAccountScreen() {
+        myName = '';
+        accountWho.textContent = 'Not signed in';
+        startScreen.hidden = true;
+        accountScreen.hidden = false;
+        setAccountError('');
+    }
+
     function takeName() {
-        const name = cleanName(nameInput.value);
-        if (!name) {
-            setOnlineError('Type a name first. Friends will see it over your head.');
-            nameInput.focus();
+        const session = window.GameAccount && window.GameAccount.current();
+        if (!session || !session.name) {
+            setOnlineError('Sign up or sign in first.');
+            showAccountScreen();
             return false;
         }
-        myName = name;
-        setLocalPerson(name);
+        myName = session.name;
+        setLocalPerson(myName);
         return true;
+    }
+
+    function finishAccount(result) {
+        if (!result.ok) {
+            setAccountError(result.error);
+            return;
+        }
+        showSignedIn(result.name);
     }
 
     function updateNameTags() {
@@ -1343,11 +1375,26 @@ if (typeof THREE === 'undefined') {
         requestAnimationFrame(tick);
     }
 
-    nameInput.addEventListener('keydown', (event) => {
+    document.getElementById('account-signup-btn').addEventListener('click', () => {
+        finishAccount(window.GameAccount.signUp(accountNick.value, accountPass.value));
+    });
+    document.getElementById('account-signin-btn').addEventListener('click', () => {
+        finishAccount(window.GameAccount.signIn(accountNick.value, accountPass.value));
+    });
+    document.getElementById('sign-out-btn').addEventListener('click', () => {
+        window.GameAccount.signOut();
+        showAccountScreen();
+    });
+    accountPass.addEventListener('keydown', (event) => {
         if (event.code === 'Enter') {
-            playBtn.click();
+            document.getElementById('account-signin-btn').click();
         }
     });
+    if (window.GameAccount && window.GameAccount.current()) {
+        showSignedIn(window.GameAccount.current().name);
+    } else {
+        showAccountScreen();
+    }
     playBtn.addEventListener('click', () => {
         if (!takeName()) {
             return;
