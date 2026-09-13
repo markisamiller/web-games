@@ -801,14 +801,14 @@ if (typeof THREE === 'undefined') {
     }
 
     function updateWave() {
-        const wave = Math.sin(Date.now() / 150);
+        const swing = Math.sin(Date.now() / 260);
         const arm = player.userData.rightArm;
-        arm.rotation.x = -2.7;
-        arm.rotation.y = 0.15;
-        arm.rotation.z = 0.35 + wave * 0.65;
+        arm.rotation.x = -Math.PI + swing * 1.05;
+        arm.rotation.y = 0.12;
+        arm.rotation.z = 0.5;
         const hand = viewHands.userData.right;
-        hand.position.set(wave * 0.2, 0.26, -0.42);
-        hand.rotation.set(0.15, 0, wave * 0.45);
+        hand.position.set(0.1, 0.2 + swing * 0.04, -0.18 - swing * 0.3);
+        hand.rotation.set(0.2 - swing * 0.4, 0, swing * 0.25);
     }
 
     let last = 0;
