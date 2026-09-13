@@ -592,7 +592,7 @@ if (typeof THREE === 'undefined') {
         const rightX = Math.cos(rot);
         const rightZ = Math.sin(rot);
         const near = nearestLadder();
-        const wantUp = keys.Space || keys.KeyD || keys.ArrowRight || keys.ArrowUp;
+        const wantUp = keys.Space || keys.KeyW || keys.ArrowUp;
         const wantDown = keys.KeyS || keys.ArrowDown;
         const midClimb = !!(
             near &&
@@ -646,21 +646,17 @@ if (typeof THREE === 'undefined') {
             moveX -= rightX;
             moveZ -= rightZ;
         }
-        if (keys.KeyW) {
+        if (keys.KeyD || keys.ArrowRight) {
             moveX += rightX;
             moveZ += rightZ;
         }
-        if (keys.KeyD || keys.ArrowRight) {
+        if (keys.KeyW || keys.ArrowUp) {
             moveX += forwardX;
             moveZ += forwardZ;
         }
         if (keys.KeyS || keys.ArrowDown) {
             moveX -= forwardX;
             moveZ -= forwardZ;
-        }
-        if (keys.ArrowUp) {
-            moveX += forwardX;
-            moveZ += forwardZ;
         }
 
         const moving = moveX !== 0 || moveZ !== 0;
@@ -707,8 +703,8 @@ if (typeof THREE === 'undefined') {
             return;
         }
         hintEl.textContent = viewMode === 'first'
-            ? 'Walk to a brown ladder. Press D or Space to climb. Press 2 for second person.'
-            : 'Walk to a brown ladder. Press D or Space to climb. Press 1 for first person.';
+            ? 'A left, D right, W forward. Walk to a ladder and press Space to climb. Press 2 for second person.'
+            : 'A left, D right, W forward. Walk to a ladder and press Space to climb. Press 1 for first person.';
     }
 
     function updateCamera() {
