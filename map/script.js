@@ -730,9 +730,10 @@ if (typeof THREE === 'undefined') {
             viewHands.position.set(Math.cos(walk) * 0.012, Math.sin(walk) * 0.018, 0);
             viewHands.rotation.set(0, 0, 0);
             viewHands.userData.left.rotation.set(handAngle, 0, 0);
-            const lookX = Math.sin(rot);
-            const lookY = 0;
-            const lookZ = -Math.cos(rot);
+            const pitch = lookPitch;
+            const lookX = Math.sin(rot) * Math.cos(pitch);
+            const lookY = Math.sin(pitch);
+            const lookZ = -Math.cos(rot) * Math.cos(pitch);
             camera.position.set(
                 player.position.x + lookX * 0.08,
                 headY,
@@ -839,7 +840,6 @@ if (typeof THREE === 'undefined') {
         }
         if (playing && !event.repeat && (event.code === 'Digit1' || event.code === 'Numpad1')) {
             viewMode = 'first';
-            lookPitch = 0;
             updateHint();
         }
         if (playing && !event.repeat && (event.code === 'Digit2' || event.code === 'Numpad2')) {
@@ -868,10 +868,6 @@ if (typeof THREE === 'undefined') {
     });
     window.addEventListener('mousemove', (event) => {
         if (!playing || !rightHeld) {
-            return;
-        }
-        if (viewMode === 'first') {
-            player.rotation.y -= event.movementX * 0.006;
             return;
         }
         player.rotation.y -= event.movementX * 0.006;
