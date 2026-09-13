@@ -208,12 +208,14 @@ if (typeof THREE === 'undefined') {
 
     function updateCamera() {
         const rot = player.rotation.y;
-        camera.position.set(
-            player.position.x - Math.sin(rot) * 9,
-            player.position.y + 5.2,
-            player.position.z + Math.cos(rot) * 9
+        const eyeY = player.position.y + 1.75;
+        camera.position.set(player.position.x, eyeY, player.position.z);
+        camera.lookAt(
+            player.position.x + Math.sin(rot),
+            eyeY,
+            player.position.z - Math.cos(rot)
         );
-        camera.lookAt(player.position.x, player.position.y + 1.4, player.position.z);
+        player.visible = false;
     }
 
     function grabStars() {
