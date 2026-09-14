@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home World</title>
-    <link rel="stylesheet" href="/map/styles.css?v=city29">
+    <link rel="stylesheet" href="/map/styles.css?v=city30">
 </head>
 <body>
     <div class="game-wrap">
@@ -13,7 +13,7 @@
             <div id="hud">
                 <span id="score">Stars: 0 / 8 · Gems: 0 / 5</span>
                 <span id="net-status">Playing alone</span>
-                <span id="hint">Press Shift to sprint. Press again to stop.</span>
+                <span id="hint">P pause. Shift sprint.</span>
             </div>
             <div id="door-label" hidden></div>
             <div id="start-screen" class="panel" hidden>
@@ -22,6 +22,7 @@
                 <p>5 gems unlock the Gem Vault ride in Skittle Marble Run.</p>
                 <p>A walks left. D walks right. W walks forward. S walks back.</p>
                 <p>Press Shift to sprint and swing your arms front and back. Press Shift again to stop.</p>
+                <p>Press P to pause. Press P again to keep playing.</p>
                 <p>Press 1 for first person (see out of your head).</p>
                 <p>Press 2 for second person (camera behind you).</p>
                 <p>Hold the right mouse button and move to look around. The head turns first. Then the body follows that way.</p>
@@ -38,6 +39,12 @@
                 <p id="online-error"></p>
                 <button id="sign-out-btn" type="button">Sign Out</button>
             </div>
+            <div id="pause-screen" class="panel" hidden>
+                <h1>Paused</h1>
+                <p>Press P or hit Resume to keep playing.</p>
+                <button id="resume-btn" type="button">Resume</button>
+                <button id="pause-menu-btn" type="button">Back</button>
+            </div>
             <div id="account-screen" class="panel">
                 <h1>Your Account</h1>
                 <p>Sign up to play. Pick a nickname and a secret 4-letter passcode.</p>
@@ -53,6 +60,6 @@
     <script src="/account.js?v=city26"></script>
     <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-    <script src="/map/script.js?v=city29"></script>
+    <script src="/map/script.js?v=city30"></script>
 </body>
 </html>

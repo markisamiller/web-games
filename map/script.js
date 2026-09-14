@@ -30,9 +30,11 @@ const accountPass = document.getElementById('account-pass');
 const accountError = document.getElementById('account-error');
 const accountWho = document.getElementById('account-who');
 const viewEl = document.getElementById('view');
+const pauseScreen = document.getElementById('pause-screen');
 let myName = '';
 
 let playing = false;
+let isPaused = false;
 let viewMode = 'second';
 let starsGot = 0;
 let nearDoor = null;
@@ -881,8 +883,8 @@ if (typeof THREE === 'undefined') {
             return;
         }
         hintEl.textContent = viewMode === 'first'
-            ? 'Press Shift to sprint and swing your arms. Press Shift again to stop. Press 2 for second person.'
-            : 'Press Shift to sprint and swing your arms. Press Shift again to stop. Press 1 for first person.';
+            ? 'P pause. Shift sprint. Press 2 for second person.'
+            : 'P pause. Shift sprint. Press 1 for first person.';
     }
 
     function updateCamera() {
@@ -1424,8 +1426,30 @@ if (typeof THREE === 'undefined') {
         remotes.forEach((body) => placeNameTag(body.userData.tag, body, false));
     }
 
+    function setPaused(next) {
+        if (!playing) {
+            return;
+        }
+        isPaused = next;
+        pauseScreen.hidden = !isPaused;
+        if (!isPaused) {
+            viewEl.querySelector('canvas').focus();
+        }
+    }
+
+    function goToStartFromPause() {
+        isPaused = false;
+        playing = false;
+        pauseScreen.hidden = true;
+        startScreen.hidden = false;
+        startScreen.scrollTop = 0;
+        closeNet();
+    }
+
     function beginPlay() {
         playing = true;
+        isPaused = false;
+        pauseScreen.hidden = true;
         startScreen.hidden = true;
         viewEl.querySelector('canvas').focus();
     }
@@ -1471,7 +1495,7 @@ if (typeof THREE === 'undefined') {
     function tick(now) {
         const dt = last ? Math.min(40, now - last) : 16;
         last = now;
-        if (playing) {
+        if (playing && !isPaused) {
             updateLookPose(wantsWalk() && !playerState.onLadder);
             updatePlayer();
             grabStars();
@@ -1508,6 +1532,10 @@ if (typeof THREE === 'undefined') {
     } else {
         showAccountScreen();
     }
+    document.getElementById('resume-btn').addEventListener('click', () => {
+        setPaused(false);
+    });
+    document.getElementById('pause-menu-btn').addEventListener('click', goToStartFromPause);
     playBtn.addEventListener('click', () => {
         if (!takeName()) {
             return;
@@ -1538,16 +1566,20 @@ if (typeof THREE === 'undefined') {
         if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(event.code)) {
             event.preventDefault();
         }
-        if (playing && !event.repeat && (event.code === 'ShiftLeft' || event.code === 'ShiftRight')) {
+        if (playing && !event.repeat && event.code === 'KeyP') {
+            setPaused(!isPaused);
+            event.preventDefault();
+        }
+        if (playing && !isPaused && !event.repeat && (event.code === 'ShiftLeft' || event.code === 'ShiftRight')) {
             playerState.sprinting = !playerState.sprinting;
             updateHint();
             event.preventDefault();
         }
-        if (playing && !event.repeat && (event.code === 'Digit1' || event.code === 'Numpad1')) {
+        if (playing && !isPaused && !event.repeat && (event.code === 'Digit1' || event.code === 'Numpad1')) {
             viewMode = 'first';
             updateHint();
         }
-        if (playing && !event.repeat && (event.code === 'Digit2' || event.code === 'Numpad2')) {
+        if (playing && !isPaused && !event.repeat && (event.code === 'Digit2' || event.code === 'Numpad2')) {
             viewMode = 'second';
             updateHint();
         }
@@ -1560,7 +1592,7 @@ if (typeof THREE === 'undefined') {
         event.preventDefault();
     });
     window.addEventListener('mousedown', (event) => {
-        if (!playing || event.button !== 2) {
+        if (!playing || isPaused || event.button !== 2) {
             return;
         }
         rightHeld = true;
@@ -1572,7 +1604,7 @@ if (typeof THREE === 'undefined') {
         }
     });
     window.addEventListener('mousemove', (event) => {
-        if (!playing || !rightHeld) {
+        if (!playing || isPaused || !rightHeld) {
             return;
         }
         lookYaw = wrapAngle(lookYaw - event.movementX * 0.006);
