@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soccer Dash</title>
+    <link rel="stylesheet" href="/soccer/styles.css?v=kick1">
+</head>
+<body>
+    <div class="game-wrap">
+        <div id="game">
+            <div id="hud">
+                <span id="score-you">You: 0</span>
+                <span id="clock">First to 3</span>
+                <span id="score-them">CPU: 0</span>
+            </div>
+            <canvas id="field" width="1000" height="560"></canvas>
+            <div id="start-screen" class="panel">
+                <h1>Soccer Dash</h1>
+                <p>A brand-new game. It is not The Great Mscape.</p>
+                <p>You are the blue player. Kick the ball into the right goal.</p>
+                <p>A and D walk left and right. W and S walk up and down.</p>
+                <p>Press Space when you are next to the ball to kick.</p>
+                <p>First to 3 goals wins. Press P to pause.</p>
+                <button id="play-btn" type="button">Play</button>
+                <a class="home-link" href="/games">All Games</a>
+            </div>
+            <div id="pause-screen" class="panel" hidden>
+                <h1>Paused</h1>
+                <p>Press P or hit Resume.</p>
+                <button id="resume-btn" type="button">Resume</button>
+            </div>
+            <div id="win-screen" class="panel" hidden>
+                <h1 id="win-title">You win!</h1>
+                <p id="win-blurb">Nice kick.</p>
+                <button id="again-btn" type="button">Play Again</button>
+                <a class="home-link" href="/games">All Games</a>
+            </div>
+        </div>
+    </div>
+    <script src="/soccer/script.js?v=kick1"></script>
+</body>
+</html>

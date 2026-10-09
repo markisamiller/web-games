@@ -30,6 +30,10 @@
     {
       "source": "/games",
       "destination": "/games/index.html"
+    },
+    {
+      "source": "/soccer",
+      "destination": "/soccer/index.html"
     }
   ],
   "redirects": [

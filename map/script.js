@@ -612,7 +612,8 @@ if (typeof THREE === 'undefined') {
     const doors = [
         makeDoor(-8, 8, 0xc8102e, 'The Great Mscape', '/'),
         makeDoor(8, 8, 0x5b3d8f, 'Hershey Super Power', '/food-fight'),
-        makeDoor(0, -10, 0x0e7490, 'Skittle Marble Run', '/home')
+        makeDoor(0, -10, 0x0e7490, 'Skittle Marble Run', '/home'),
+        makeDoor(-8, -8, 0x1f6feb, 'Soccer Dash', '/soccer')
     ];
     doors.forEach((door) => scene.add(door));
 

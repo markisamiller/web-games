@@ -72,6 +72,10 @@ p {
     background: linear-gradient(#143d2a, #2ECC40);
 }
 
+.soccer {
+    background: linear-gradient(#1f6feb, #2f8a44);
+}
+
 .title {
     margin-top: 8px;
     font-size: 22px;
