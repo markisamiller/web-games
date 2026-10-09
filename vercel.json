@@ -34,6 +34,10 @@
     {
       "source": "/soccer",
       "destination": "/soccer/index.html"
+    },
+    {
+      "source": "/new-game",
+      "destination": "/new-game/index.html"
     }
   ],
   "redirects": [

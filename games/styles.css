@@ -76,6 +76,10 @@ p {
     background: linear-gradient(#1f6feb, #2f8a44);
 }
 
+.empty {
+    background: #000;
+}
+
 .title {
     margin-top: 8px;
     font-size: 22px;
